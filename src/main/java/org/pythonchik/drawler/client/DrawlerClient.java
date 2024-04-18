@@ -104,7 +104,7 @@ public class DrawlerClient implements ClientModInitializer {
                         isthere = false;
                         todrawimg = null;
                         current = new HashMap<>();
-                        send_message("done!...");
+                        send_message("выполнено!...");
                         return 1;
                     }));
         });
@@ -152,6 +152,10 @@ public class DrawlerClient implements ClientModInitializer {
                 MinecraftClient.getInstance().setScreen(new DrawlerScreen());
             }
             while (pauseKeyBinding.wasPressed()){
+                if (todrawimg == null) {
+                    send_message("Нельзя снять с паузы, если ничего не рисовать");
+                    return;
+                }
                 isdrawin = !isdrawin;
                 if (isdrawin) {
                     send_message("Продолжаем рисовать на координатах &ax- %d, y- %d".formatted(curx,curz));
@@ -290,7 +294,10 @@ public class DrawlerClient implements ClientModInitializer {
                 case WEST -> current = DrawlerConfig.west;
                 case NORTH -> current = DrawlerConfig.north;
                 case SOUTH -> current = DrawlerConfig.south;
-                default -> current = DrawlerConfig.south;
+                default -> {
+                    send_message("Вам нужно смотреть прямо на холст во время написания координаты");
+                    return;
+                }
             }
             HashMap<Color,Integer> ColorMap; //item id , count
             ArrayList<Color> colors = DrawlerConfig.colors;
@@ -362,8 +369,6 @@ public class DrawlerClient implements ClientModInitializer {
     private static long key_point(long time){
         return (System.currentTimeMillis()-time);
     }
-
-
 
     private static void draw(int x, int y) {
         long start_time = System.currentTimeMillis();
