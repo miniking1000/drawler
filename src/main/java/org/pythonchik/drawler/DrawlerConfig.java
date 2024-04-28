@@ -27,8 +27,6 @@ public class DrawlerConfig {
     public static HashMap<Color,ArrayList<Integer>> Clors = new HashMap<>();
     public static HashMap<Integer, Item> items = new HashMap<>();
     public static ArrayList<Color> colors = new ArrayList<>();
-
-
     public static int getColorID(Color color) {
         for (Map.Entry<Color, ArrayList<Integer>> entry : Clors.entrySet()) {
             if (entry.getKey().equals(color)) {
@@ -46,12 +44,7 @@ public class DrawlerConfig {
         }
         return 0;
     }
-    private static void loadSerializedData(String resourcePath, HashMap<ArrayList<Integer>, ArrayList<Float>> dataMap) {
-        try (InputStream inputStream = DrawlerConfig.class.getResourceAsStream(resourcePath);
-             ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
-             dataMap = (HashMap<ArrayList<Integer>, ArrayList<Float>>) objectInputStream.readObject();
-        } catch (Exception ignored) {}
-    }
+
     public static void loadConfig() {
         File west_path = new File(WEST_RESOURCE_PATH);
         if (west_path.exists()) {

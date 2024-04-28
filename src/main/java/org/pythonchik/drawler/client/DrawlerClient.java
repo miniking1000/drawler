@@ -236,7 +236,6 @@ public class DrawlerClient implements ClientModInitializer {
                 }
 
 
-
                 RenderSystem.setShaderTexture(0, new Identifier("drawler", "urlimg.png"));
                 RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
                 RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
@@ -248,7 +247,6 @@ public class DrawlerClient implements ClientModInitializer {
                 tessellator.draw();
             }
         });
-
     }
 
     public static void gonext(){
@@ -299,8 +297,12 @@ public class DrawlerClient implements ClientModInitializer {
                     return;
                 }
             }
-            HashMap<Color,Integer> ColorMap; //item id , count
-            ArrayList<Color> colors = DrawlerConfig.colors;
+            HashMap<Color,Integer> ColorMap;
+            ArrayList<Color> colors = new ArrayList<>();
+            for (Color color : DrawlerConfig.colors){
+                colors.add(new Color(color.getRGB()));
+            }
+
 
             do {
                 ColorMap = new HashMap<>();
@@ -374,9 +376,9 @@ public class DrawlerClient implements ClientModInitializer {
         long start_time = System.currentTimeMillis();
         ScheduledExecutorService serv = Executors.newScheduledThreadPool(1);
         ScheduledFuture backup = serv.schedule(() -> {
-            Drawler.LOGGER.info("backup message, what's going on??? ");
+            Drawler.LOGGER.info("backup message, what's going on???");
             if (invert) {
-                int togo = 1;
+                int togo = oneback;
                 while (curx - togo < 0) {
                     togo = togo - curx - 1;
                     curx =127;
@@ -429,13 +431,6 @@ public class DrawlerClient implements ClientModInitializer {
                 player.setPitch(degree.get(1));
                 player.getInventory().updateItems();
                 player.getInventory().markDirty();
-                /*
-                if (!invert){
-                    curx += 1;
-                } else {
-                    curx -= 1;
-                }
-                 */
 
                 ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
                 Drawler.LOGGER.info(list.getKey() + " " + list.getValue() + " " + Cid + " " + Cvr + " " + key_point(start_time) + " - before delays");
