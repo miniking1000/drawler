@@ -12,6 +12,7 @@ public class DrawlerScreen extends Screen {
     private ButtonWidget mode34;
     private ButtonWidget needtorender;
     private ButtonWidget invert;
+    private ButtonWidget needtocorrect;
     private ButtonWidget scaleP;
     private ButtonWidget scaleM;
     private ButtonWidget delayP1;
@@ -43,6 +44,14 @@ public class DrawlerScreen extends Screen {
                 })
                 .dimensions(width / 2 + 5, 20, 200, 20)
                 .tooltip(Tooltip.of(Text.literal(String.format("При включении, во время рисования в верхнем левом углу, будет уменьшенная версия изображения.\nТекущее значение - %s",DrawlerClient.needtorender))))
+                .build();
+
+        needtocorrect = ButtonWidget.builder(Text.literal("Correction"), button -> {
+                    DrawlerClient.needtocorrect = !DrawlerClient.needtocorrect;
+                    needtocorrect.setTooltip(Tooltip.of(Text.literal(String.format("При включенном, после рисования будет проведено исправление ошибок если такие есть.\nТекущее значение - %s",DrawlerClient.needtocorrect))));
+                })
+                .dimensions(width / 2 - 205, 120, 200, 20) //TODO place button
+                .tooltip(Tooltip.of(Text.literal(String.format("При включенном, после рисования будет проведено исправление ошибок если такие есть.\nТекущее значение - %s",DrawlerClient.needtocorrect))))
                 .build();
 
         invert = ButtonWidget.builder(Text.literal("invert"), button -> {
@@ -132,6 +141,7 @@ public class DrawlerScreen extends Screen {
         addDrawableChild(mode34);
         addDrawableChild(needtorender);
         addDrawableChild(invert);
+        addDrawableChild(needtocorrect);
         addDrawableChild(scaleP);
         addDrawableChild(scaleM);
         addDrawableChild(backP);

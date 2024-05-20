@@ -3,12 +3,14 @@ package org.pythonchik.drawler.client;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.sun.jna.platform.win32.COM.IUnknown;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.minecraft.block.MapColor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
@@ -20,6 +22,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.item.map.MapState;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
@@ -35,6 +38,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,15 +55,19 @@ public class DrawlerClient implements ClientModInitializer {
     static HashMap<ArrayList<Integer>, ArrayList<Float>> current;
     static int curx = 0;
     static int curz = 0;
+    static int mapid = -1;
     static boolean invert = false;
     static boolean needtorender = false;
     static boolean mode34 = true;
+    static boolean needtocorrect = true;
+    static boolean iscorrectin = false;
+    static ArrayList<ArrayList<Integer>> tocorrect = new ArrayList<>();
     static int oneback = 3;
     static int delay = 250;
+    static ScheduledFuture backup = null;
     static HashMap<Item,Integer> ItemMap;
     private static KeyBinding openMenuKeyBinding;
     private static KeyBinding pauseKeyBinding;
-    private static KeyBinding invertKeyBinding;
     private static KeyBinding gobackKeyBinding;
     private static final Identifier MAP_CHKRBRD =
             new Identifier("minecraft:textures/map/map_background.png");
@@ -78,12 +86,6 @@ public class DrawlerClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_KP_1,
                 "category.drawler.modsettings"
         ));
-        invertKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.drawler.invert",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_2,
-                "category.drawler.modsettings"
-        ));
         gobackKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.drawler.goback",
                 InputUtil.Type.KEYSYM,
@@ -100,7 +102,9 @@ public class DrawlerClient implements ClientModInitializer {
                         url = "";
                         curx = 0;
                         curz = 0;
+                        mapid = -1;
                         isdrawin = false;
+                        needtocorrect = true;
                         isthere = false;
                         todrawimg = null;
                         current = new HashMap<>();
@@ -136,15 +140,17 @@ public class DrawlerClient implements ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("drawpic")
-                    .then(ClientCommandManager.argument("url", StringArgumentType.greedyString())
-                            .executes(context -> {
-                                send_message("Обработка изображения, пожалуйста подождите...");
-                                url = StringArgumentType.getString(context, "url");
-                                ScheduledExecutorService backup = Executors.newScheduledThreadPool(1);
-                                backup.schedule(() -> processImage(url), 0, TimeUnit.MILLISECONDS);
-                                backup.shutdown();
-                                return 1;
-                            })));
+                    .then(ClientCommandManager.argument("mapID",IntegerArgumentType.integer(0))
+                            .then(ClientCommandManager.argument("url", StringArgumentType.greedyString())
+                                    .executes(context -> {
+                                        send_message("Обработка изображения, пожалуйста подождите...");
+                                        mapid = IntegerArgumentType.getInteger(context, "mapID");
+                                        url = StringArgumentType.getString(context, "url");
+                                        ScheduledExecutorService backup = Executors.newScheduledThreadPool(1);
+                                        backup.schedule(() -> processImage(url), 0, TimeUnit.MILLISECONDS);
+                                        backup.shutdown();
+                                        return 1;
+                                    }))));
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -165,27 +171,19 @@ public class DrawlerClient implements ClientModInitializer {
                 }
 
             }
-            while (invertKeyBinding.wasPressed()) {
-            if (invert) {
-                send_message("Рисуем как надо");
-            } else {
-                send_message("Рисуем в обратном направлении");
-            }
-            invert = !invert;
-            }
             while (gobackKeyBinding.wasPressed()) {
-                if (!invert) {
+                if (!invert) { //идем как надо
                     int togo = oneback;
-                    while (curx - togo < 0) {
-                        togo = togo - curx - 1;
-                        curx =127;
+                    while (curx - togo < 0) { //если Х меньше чем надо пройти
+                        togo = togo - curx - 1; //то убираем Х и еще одну из-за 0
+                        curx =127; //ставим его на максимум прошлого ряда
                         if (curz != 0) {
-                            curz -= 1;
+                            curz -= 1; //убираем ряд или ставим его на другую сторону
                         } else {
                             curz = 127;
                         }
                     }
-                    curx -=togo;
+                    curx -=togo; //если же мы можем вычесть, то просто вычитаем
                 } else {
                     int togo = oneback;
                     while (curx + togo > 127) {
@@ -251,28 +249,49 @@ public class DrawlerClient implements ClientModInitializer {
 
     public static void gonext(){
         if (isdrawin) {
-            draw(curx, curz);
-            if (invert) {
-                int togo = 1;
-                while (curx - togo < 0) {
-                    togo = togo - curx - 1;
-                    curx =127;
-                    if (curz != 0) {
-                        curz -= 1;
-                    } else {
-                        curz = 127;
-                    }
+            if (iscorrectin ){
+                if (!tocorrect.isEmpty()) {
+                    draw(tocorrect.get(0).get(0), tocorrect.get(0).get(1));
+                    tocorrect.remove(0);
+                } else{
+                    send_message("Работа над ошибками завершена, ошибок больше нет.");
+                    isdrawin = false;
+                    iscorrectin = false;
                 }
-                curx -=togo;
             } else {
+                draw(curx, curz);
                 int togo = 1;
                 while (curx + togo > 127) {
-                    togo = togo - (127-curx) - 1;
+                    togo = togo - (127 - curx) - 1;
                     curx = 0;
                     if (curz != 127) {
                         curz += 1;
                     } else {
                         curz = 0;
+                        isdrawin = false;
+                        send_message("Останавливаемся так как картина предположительно дорисована.");
+                        if (needtocorrect) {
+                            send_message("Начинаем проверку на ошибки");
+                            MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+                            if (mapState != null) {
+                                for (int x = 0; x < 128; x++) {
+                                    for (int y = 0; y < 128; y++) {
+                                        if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                                                ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
+                                            tocorrect.add(new ArrayList<>(List.of(x, y)));
+                                            iscorrectin = true;
+                                            isdrawin = true;
+                                        }
+                                    }
+                                }
+                                if (tocorrect.size() == 0){
+                                    send_message("Ошибок не выявлено! картина готова!");
+                                    //TODO save pick if you said so in config
+                                } else {
+                                    send_message("Проверка ошибок завершена, выявлено %d ошибок. Переходим к исправлению".formatted(tocorrect.size()));
+                                }
+                            }
+                        }
                     }
                 }
                 curx += togo;
@@ -283,7 +302,7 @@ public class DrawlerClient implements ClientModInitializer {
     public static void processImage(String url) {
         try {
             BufferedImage originalImage = ImageIO.read(new URL(url));
-            BufferedImage resizedImage = resizeImage(originalImage, 128, 128);
+            BufferedImage resizedImage = resizeImage(originalImage, 128, 128); //TODO this line will break 2x1 picks, rework that
 
             ClientPlayerEntity player = MinecraftClient.getInstance().player;
             Drawler.LOGGER.info(player.getHorizontalFacing().toString());
@@ -300,7 +319,7 @@ public class DrawlerClient implements ClientModInitializer {
             HashMap<Color,Integer> ColorMap;
             ArrayList<Color> colors = new ArrayList<>();
             for (Color color : DrawlerConfig.colors){
-                colors.add(new Color(color.getRGB()));
+                colors.add(new Color(color.getRGB())); //creating local list of colors
             }
 
 
@@ -345,12 +364,30 @@ public class DrawlerClient implements ClientModInitializer {
             isthere = true;
             todrawimg = resizedImage;
             isdrawin = false;
-            send_message("Предметы, которые нужно собрать:");
-            check_item();
+            if (bacK_check_item()) {
+                send_message("Предметы, которые нужно собрать:");
+                check_item();
+            } else {
+                send_message("Ресурсы уже собраны.");
+            }
         } catch (Exception ignored) {
+            send_message("Что-то пошло не так, проверьте ссылку на изображение");
         }
     }
-
+    private static boolean bacK_check_item(){
+        boolean temp = false;
+        if (ItemMap.isEmpty()){
+            send_message("Список ресурсов пустой, вы ничего не рисуете...");
+            return false;
+        }
+        for (Item i : ItemMap.keySet()){
+            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(i))){
+                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(i.getTranslationKey())));
+                temp = true;
+            }
+        }
+        return temp;
+    }
     private static void check_item(){
         boolean temp = false;
         if (ItemMap.isEmpty()){
@@ -374,39 +411,16 @@ public class DrawlerClient implements ClientModInitializer {
 
     private static void draw(int x, int y) {
         long start_time = System.currentTimeMillis();
-        ScheduledExecutorService serv = Executors.newScheduledThreadPool(1);
-        ScheduledFuture backup = serv.schedule(() -> {
-            Drawler.LOGGER.info("backup message, what's going on???");
-            if (invert) {
-                int togo = oneback;
-                while (curx - togo < 0) {
-                    togo = togo - curx - 1;
-                    curx =127;
-                    if (curz != 0) {
-                        curz -= 1;
-                    } else {
-                        curz = 127;
-                    }
-                }
-                curx -=togo;
-            } else {
-                int togo = 1;
-                while (curx + togo > 127) {
-                    togo = togo - (127-curx) - 1;
-                    curx = 0;
-                    if (curz != 127) {
-                        curz += 1;
-                    } else {
-                        curz = 0;
-                    }
-                    curx += togo;
-                }
-            }
-            DrawlerClient.gonext();
-        }, delay*15L, TimeUnit.MILLISECONDS);
-        serv.shutdown();
         PlayerEntity player = MinecraftClient.getInstance().player;
         Color minecraftColor = new Color(todrawimg.getRGB(x, y));
+        if (MinecraftClient.getInstance().world == null) return;
+        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+        ScheduledExecutorService serv = Executors.newScheduledThreadPool(1);
+        backup = serv.schedule(() -> {
+            Drawler.LOGGER.info("backup message, what's going on???");
+            DrawlerClient.gonext();
+        }, delay*10L, TimeUnit.MILLISECONDS);
+        serv.shutdown();
         int Cid = DrawlerConfig.getColorID(minecraftColor);
         int Cvr = DrawlerConfig.getColorVariant(minecraftColor);
         Item ToFind = DrawlerConfig.items.get(Cid);
@@ -481,16 +495,44 @@ public class DrawlerClient implements ClientModInitializer {
                             service4.schedule(() -> {
                                 backup.cancel(true);
                                 serv.shutdown();
-                                //Drawler.LOGGER.info(key_point(start_time) + " - I will gonext now(x3)");
+                                if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
+                                        ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
+                                    int togo = oneback;
+                                    while (curx - togo < 0) { //если Х меньше чем надо пройти
+                                        togo = togo - curx - 1; //то убираем Х и еще одну из-за 0
+                                        curx =127; //ставим его на максимум прошлого ряда
+                                        if (curz != 0) {
+                                            curz -= 1; //убираем ряд или ставим его на другую сторону
+                                        } else {
+                                            curz = 127;
+                                        }
+                                    }
+                                    curx -=togo; //если же мы можем вычесть, то просто вычитаем
+                                    Drawler.LOGGER.info("now was an else, redrawing???");
+                                }
                                 gonext();
-                                }, delay* 3L, TimeUnit.MILLISECONDS);
+                            }, delay* 3L, TimeUnit.MILLISECONDS);
                             service4.shutdown();
                         } else if (Cvr == 3) { //coal 2
                             ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
                                 service4.schedule(() -> {
                                     backup.cancel(true);
                                     serv.shutdown();
-                                    //Drawler.LOGGER.info(key_point(start_time) + " - I will gonext now(x4)");
+                                    if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
+                                            ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
+                                        int togo = oneback;
+                                        while (curx - togo < 0) { //если Х меньше чем надо пройти
+                                            togo = togo - curx - 1; //то убираем Х и еще одну из-за 0
+                                            curx =127; //ставим его на максимум прошлого ряда
+                                            if (curz != 0) {
+                                                curz -= 1; //убираем ряд или ставим его на другую сторону
+                                            } else {
+                                                curz = 127;
+                                            }
+                                        }
+                                        curx -=togo; //если же мы можем вычесть, то просто вычитаем
+                                        Drawler.LOGGER.info("now was an else, redrawing???");
+                                    }
                                     gonext();
                                 }, delay* 4L, TimeUnit.MILLISECONDS);
                                 service4.shutdown();
@@ -499,7 +541,21 @@ public class DrawlerClient implements ClientModInitializer {
                                 service4.schedule(() -> {
                                     backup.cancel(true);
                                     serv.shutdown();
-                                    //Drawler.LOGGER.info(key_point(start_time) + " - I will gonext now(x1)");
+                                    if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
+                                            ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
+                                        int togo = oneback;
+                                        while (curx - togo < 0) { //если Х меньше чем надо пройти
+                                            togo = togo - curx - 1; //то убираем Х и еще одну из-за 0
+                                            curx =127; //ставим его на максимум прошлого ряда
+                                            if (curz != 0) {
+                                                curz -= 1; //убираем ряд или ставим его на другую сторону
+                                            } else {
+                                                curz = 127;
+                                            }
+                                        }
+                                        curx -=togo; //если же мы можем вычесть, то просто вычитаем
+                                        Drawler.LOGGER.info("now was an else, redrawing???");
+                                    }
                                     gonext();
                                 }, delay, TimeUnit.MILLISECONDS);
                                 service4.shutdown();
