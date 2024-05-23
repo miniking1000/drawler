@@ -36,10 +36,8 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -56,8 +54,10 @@ public class DrawlerClient implements ClientModInitializer {
     static int curx = 0;
     static int curz = 0;
     static int mapid = -1;
-    static boolean invert = false;
     static boolean needtorender = false;
+    static int correction_mode = 0;
+    //0 = default, from left to right, up to down...
+    //1 = random, just random.
     static boolean mode34 = true;
     static boolean needtocorrect = true;
     static boolean iscorrectin = false;
@@ -127,6 +127,15 @@ public class DrawlerClient implements ClientModInitializer {
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            dispatcher.register(ClientCommandManager.literal("FixYourself!")
+                    .executes(context -> {
+                        check_errors();
+                        return 1;
+                    }));
+        });
+
+
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("set_drawing")
                     .then(ClientCommandManager.argument("x", IntegerArgumentType.integer(0,128))
                             .then(ClientCommandManager.argument("y", IntegerArgumentType.integer(0,128))
@@ -155,7 +164,8 @@ public class DrawlerClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKeyBinding.wasPressed()) {
-                MinecraftClient.getInstance().setScreen(new DrawlerScreen());
+                //MinecraftClient.getInstance().setScreen(new DrawlerScreen());
+                MinecraftClient.getInstance().setScreen(DrawlerSettings.create(MinecraftClient.getInstance().currentScreen));
             }
             while (pauseKeyBinding.wasPressed()){
                 if (todrawimg == null) {
@@ -172,31 +182,17 @@ public class DrawlerClient implements ClientModInitializer {
 
             }
             while (gobackKeyBinding.wasPressed()) {
-                if (!invert) { //идем как надо
-                    int togo = oneback;
-                    while (curx - togo < 0) { //если Х меньше чем надо пройти
-                        togo = togo - curx - 1; //то убираем Х и еще одну из-за 0
-                        curx =127; //ставим его на максимум прошлого ряда
-                        if (curz != 0) {
-                            curz -= 1; //убираем ряд или ставим его на другую сторону
-                        } else {
-                            curz = 127;
-                        }
+                int togo = oneback;
+                while (curx - togo < 0) { //если Х меньше чем надо пройти
+                    togo = togo - curx - 1; //то убираем Х и еще одну из-за 0
+                    curx =127; //ставим его на максимум прошлого ряда
+                    if (curz != 0) {
+                        curz -= 1; //убираем ряд или ставим его на другую сторону
+                    } else {
+                        curz = 127;
                     }
-                    curx -=togo; //если же мы можем вычесть, то просто вычитаем
-                } else {
-                    int togo = oneback;
-                    while (curx + togo > 127) {
-                        togo = togo - (127-curx) - 1;
-                        curx = 0;
-                        if (curz != 127) {
-                            curz += 1;
-                        } else {
-                            curz = 0;
-                        }
-                    }
-                    curx += togo;
                 }
+                curx -=togo; //если же мы можем вычесть, то просто вычитаем
                 send_message(String.format("Теперь текущие координаты -> &ax - %d, y - %d",curx,curz));
             }
         });
@@ -249,14 +245,25 @@ public class DrawlerClient implements ClientModInitializer {
 
     public static void gonext(){
         if (isdrawin) {
-            if (iscorrectin ){
+            if (iscorrectin){
                 if (!tocorrect.isEmpty()) {
-                    draw(tocorrect.get(0).get(0), tocorrect.get(0).get(1));
-                    tocorrect.remove(0);
-                } else{
-                    send_message("Работа над ошибками завершена, ошибок больше нет.");
+                    int ind = -1;
+                    if (correction_mode == 0) { // default left to right...
+                        ind = 0;
+                    } else if (correction_mode == 1) {
+                        Random rand = new Random();
+                        ind = rand.nextInt(tocorrect.size());
+                    } else {
+                        send_message("Неверное значение режима исправление. очень странно...");
+                        return;
+                    }
+                    draw(tocorrect.get(ind).get(0), tocorrect.get(ind).get(1));
+                    tocorrect.remove(ind);
+                } else {
+                    send_message("Работа над ошибками завершена");
                     isdrawin = false;
                     iscorrectin = false;
+                    check_errors();
                 }
             } else {
                 draw(curx, curz);
@@ -271,26 +278,7 @@ public class DrawlerClient implements ClientModInitializer {
                         isdrawin = false;
                         send_message("Останавливаемся так как картина предположительно дорисована.");
                         if (needtocorrect) {
-                            send_message("Начинаем проверку на ошибки");
-                            MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
-                            if (mapState != null) {
-                                for (int x = 0; x < 128; x++) {
-                                    for (int y = 0; y < 128; y++) {
-                                        if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
-                                                ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
-                                            tocorrect.add(new ArrayList<>(List.of(x, y)));
-                                            iscorrectin = true;
-                                            isdrawin = true;
-                                        }
-                                    }
-                                }
-                                if (tocorrect.size() == 0){
-                                    send_message("Ошибок не выявлено! картина готова!");
-                                    //TODO save pick if you said so in config
-                                } else {
-                                    send_message("Проверка ошибок завершена, выявлено %d ошибок. Переходим к исправлению".formatted(tocorrect.size()));
-                                }
-                            }
+                            check_errors();
                         }
                     }
                 }
@@ -299,6 +287,31 @@ public class DrawlerClient implements ClientModInitializer {
         }
     }
 
+    public static void check_errors(){
+        send_message("Начинаем проверку на ошибки");
+        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+        if (mapState != null) {
+            for (int y = 0; y < 128; y++) {
+                for (int x = 0; x < 128; x++) {
+                    if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
+                        tocorrect.add(new ArrayList<>(List.of(x, y)));
+                        iscorrectin = true;
+                        isdrawin = true;
+                    }
+                }
+            }
+            if (tocorrect.size() == 0){
+                send_message("Ошибок не выявлено! картина готова!");
+                //TODO save pick if you said so in config
+                //TODO continued drawing in queue
+            } else {
+                send_message("Проверка ошибок завершена, выявлено %d ошибок. Переходим к исправлению".formatted(tocorrect.size()));
+            }
+        } else {
+            send_message("С картой какая-то ошибка.");
+        }
+    }
     public static void processImage(String url) {
         try {
             BufferedImage originalImage = ImageIO.read(new URL(url));
