@@ -363,7 +363,8 @@ public class DrawlerClient implements ClientModInitializer {
                     //Drawler.LOGGER.info("removed - " + key + " " + colors + " - colors");
                 }
             } while (mode34 && ItemMap.size() > 34);
-
+            ItemMap.put(Items.COAL,1);
+            ItemMap.put(Items.FEATHER,1);
             byte[] imageBytes = null;
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
