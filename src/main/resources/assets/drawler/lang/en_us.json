@@ -3,5 +3,23 @@
   "category.drawler.modsettings": "drawler settings",
   "key.drawler.pause": "pause drawing",
   "key.drawler.invert": "draw backwards",
-  "key.drawler.goback": "step back"
+  "key.drawler.goback": "step back",
+
+  "settings.title.main": "Settings",
+  "settings.title.general":"General",
+  "settings.title.drawing": "Drawing",
+  "settings.option.delay": "Delay",
+  "settings.tooltip.delay": "Delay between each action in MS",
+  "settings.option.scale": "Scale",
+  "settings.tooltip.scale": "Scale of the rendered picture",
+  "settings.option.oneback": "Step back",
+  "settings.tooltip.oneback": "Step back amount",
+  "settings.option.rule34": "mode 34",
+  "settings.tooltip.rule34": "With this toggle being on, all resources are guaranteed to fit inside one inventory",
+  "settings.option.correction": "Error correction",
+  "settings.tooltip.correction": "After finishing drawing, if this is on it will automatically check for errors and fix them.",
+  "settings.option.correction_mode": "Error correction mode",
+  "settings.tooltip.correction_mode": "Decides how error correction will go",
+  "settings.option.rendering": "Rendering",
+  "settings.tooltip.rendering":"If you turn this on, you will see preview of your picture in your left upper corner of the screen"
 }

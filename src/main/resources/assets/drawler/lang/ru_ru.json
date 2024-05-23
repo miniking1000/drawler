@@ -3,5 +3,23 @@
   "category.drawler.modsettings": "Настройки рисовалки",
   "key.drawler.pause": "Поставить на паузу",
   "key.drawler.invert": "Рисовать в обратном направлении",
-  "key.drawler.goback": "Шаг назад"
+  "key.drawler.goback": "Шаг назад",
+
+  "settings.title.main": "Настройки",
+  "settings.title.general":"Общие",
+  "settings.title.drawing": "Рисования",
+  "settings.option.delay": "Задержка",
+  "settings.tooltip.delay": "Значение задержки между каждым действием в МС",
+  "settings.option.scale": "Размер",
+  "settings.tooltip.scale": "Размер изображения в верхнем левом углу, если такое есть",
+  "settings.option.oneback": "Шаг назад",
+  "settings.tooltip.oneback": "Размер шага назад",
+  "settings.option.rule34": "Правило 34",
+  "settings.tooltip.rule34": "Когда включено, гарантируется, что все ресурсы вместятся в один инвентарь",
+  "settings.option.correction": "Исправление ошибок",
+  "settings.tooltip.correction": "После завершения рисования будет выполнена проверка на ошибки, и они будут исправляться",
+  "settings.option.correction_mode": "Режим исправления ошибок",
+  "settings.tooltip.correction_mode": "Решает как будет проходить исправление ошибок",
+  "settings.option.rendering": "Превью",
+  "settings.tooltip.rendering":"Если включено, то в верхнем левом углу будет превью изображение которе сейчас рисуется"
 }
