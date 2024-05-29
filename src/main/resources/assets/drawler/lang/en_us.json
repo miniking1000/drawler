@@ -20,6 +20,10 @@
   "settings.tooltip.correction": "After finishing drawing, if this is on it will automatically check for errors and fix them.",
   "settings.option.correction_mode": "Error correction mode",
   "settings.tooltip.correction_mode": "Decides how error correction will go",
+  "settings.option.drawing_mode": "Drawing mode",
+  "settings.tooltip.drawing_mode": "Decides how drawing will go",
+  "settings.drawing_mode.1": "Left to right, top to bottom",
+  "settings.drawing_mode.2": "Random",
   "settings.option.rendering": "Rendering",
   "settings.tooltip.rendering":"If you turn this on, you will see preview of your picture in your left upper corner of the screen"
 }

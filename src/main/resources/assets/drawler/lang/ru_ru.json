@@ -20,6 +20,10 @@
   "settings.tooltip.correction": "После завершения рисования будет выполнена проверка на ошибки, и они будут исправляться",
   "settings.option.correction_mode": "Режим исправления ошибок",
   "settings.tooltip.correction_mode": "Решает как будет проходить исправление ошибок",
+  "settings.option.drawing_mode": "Режим рисования",
+  "settings.tooltip.drawing_mode": "Решает как будет идти рисование",
+  "settings.drawing_mode.1": "Слева направо, сверху вниз",
+  "settings.drawing_mode.2": "Случайно",
   "settings.option.rendering": "Превью",
   "settings.tooltip.rendering":"Если включено, то в верхнем левом углу будет превью изображение которе сейчас рисуется"
 }

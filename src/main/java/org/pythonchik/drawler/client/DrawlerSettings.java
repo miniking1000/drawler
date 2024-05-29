@@ -7,11 +7,13 @@ import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
 import me.shedaniel.clothconfig2.impl.builders.DropdownMenuBuilder;
+import me.shedaniel.clothconfig2.impl.builders.EnumSelectorBuilder;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.pythonchik.drawler.Drawler;
+import org.pythonchik.drawler.DrawlerConfig;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,6 +26,7 @@ import java.util.function.Supplier;
 public class DrawlerSettings {
 
     private static final File settings_file = new File("config/saved.yml");
+
     public static void saveSettings() {
         Map<String,Object> data = new HashMap<>();
         data.put("scale",DrawlerClient.scale);
@@ -32,6 +35,9 @@ public class DrawlerSettings {
         data.put("mode34",DrawlerClient.mode34);
         data.put("needtocorrect",DrawlerClient.needtocorrect);
         data.put("correction_mode",DrawlerClient.correction_mode);
+        data.put("drawing_mode",DrawlerClient.drawing_mode);
+
+
         //add line here to save value
 
         DumperOptions options = new DumperOptions();
@@ -46,6 +52,8 @@ public class DrawlerSettings {
             return;
         }
 
+        phrase_mode();
+
         Yaml yaml = new Yaml();
         try (InputStream inputStream = new FileInputStream(settings_file)) {
             Map<String, Object> data = yaml.load(inputStream);
@@ -56,11 +64,30 @@ public class DrawlerSettings {
             DrawlerClient.mode34 = (Boolean) data.getOrDefault("mode34", true);
             DrawlerClient.needtocorrect = (Boolean) data.getOrDefault("needtocorrect", true);
             DrawlerClient.correction_mode = (Integer) data.getOrDefault("correction_mode",0);
+            DrawlerClient.drawing_mode = (Integer) data.getOrDefault("drawing_mode",0);
             //add line here to load value
 
         } catch (Exception ignored) {}
     }
+
+
+    public static void phrase_mode() {
+        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()};
+
+        if (DrawlerClient.drawing_string.equals(modes[0])) {
+            DrawlerClient.drawing_mode = 0;
+        } else if (DrawlerClient.drawing_string.equals(modes[1])) {
+            DrawlerClient.drawing_mode = 1;
+        }
+        if (DrawlerClient.correction_string.equals(modes[0])) {
+            DrawlerClient.correction_mode = 0;
+        } else if (DrawlerClient.correction_string.equals(modes[1])) {
+            DrawlerClient.correction_mode = 1;
+        }
+    }
+
     static Screen create(Screen parent) {
+
         ConfigBuilder builder = ConfigBuilder.create()
                 .setParentScreen(parent)
                 .setDefaultBackgroundTexture(new Identifier("minecraft:textures/block/honeycomb_block.png"))
@@ -68,7 +95,8 @@ public class DrawlerSettings {
 
         builder.setSavingRunnable(() -> {
             saveSettings();
-            Drawler.LOGGER.info("This message is mostly for testing, BUTt after this version this message will contain a hidden message, so keep an eye on this one!");
+            phrase_mode();
+            Drawler.LOGGER.info("I'm sorry for this, but you'll have to wait more, I don't have a good puzzle yet");
         });
 
 
@@ -78,54 +106,62 @@ public class DrawlerSettings {
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 
         //rendering
-        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.rendering","Rendering"), DrawlerClient.needtorender)
+        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.rendering","check your localization file"), DrawlerClient.needtorender)
                 .setDefaultValue(true)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.rendering","If you turn this on, you will see preview of your picture in your left upper corner of the screen"))
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.rendering","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.needtorender = newValue)
                 .build());
 
         //SCALE
-        general.addEntry(entryBuilder.startFloatField(Text.translatableWithFallback("settings.option.scale","scale"), DrawlerClient.scale)
+        general.addEntry(entryBuilder.startFloatField(Text.translatableWithFallback("settings.option.scale","check your localization file"), DrawlerClient.scale)
                 .setDefaultValue(1)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.scale","scale of rendered picture"))
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.scale","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.scale = newValue)
                 .build());
 
         //DElAY
-        drawing.addEntry(entryBuilder.startIntField(Text.translatableWithFallback("settings.option.delay","delay"), DrawlerClient.delay)
+        drawing.addEntry(entryBuilder.startIntField(Text.translatableWithFallback("settings.option.delay","check your localization file"), DrawlerClient.delay)
                 .setDefaultValue(200)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.delay","Delay between each action"))
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.delay","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.delay = newValue)
                 .build());
 
         //BACK
-        drawing.addEntry(entryBuilder.startIntField(Text.translatableWithFallback("settings.option.oneback","Step back"), DrawlerClient.oneback)
+        drawing.addEntry(entryBuilder.startIntField(Text.translatableWithFallback("settings.option.oneback","check your localization file"), DrawlerClient.oneback)
                 .setDefaultValue(3)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.oneback","step back amount"))
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.oneback","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.oneback = newValue)
                 .build());
 
         //rule 34
-        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.rule34","mode 34"), DrawlerClient.mode34)
+        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.rule34","check your localization file"), DrawlerClient.mode34)
                 .setDefaultValue(true)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.rule34","With this toggle being on, all resources are guaranteed to fit inside one inventory"))
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.rule34","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.mode34 = newValue)
                 .build());
 
         //Correction
-        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.correction","Error correction"), DrawlerClient.needtocorrect)
+        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.correction","check your localization file"), DrawlerClient.needtocorrect)
                 .setDefaultValue(true)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.correction","After finishing drawing, if this is on it will automatically check for errors and fix them."))
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.correction","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.needtocorrect = newValue)
                 .build());
 
-        //correction mode
-        general.addEntry(entryBuilder.startIntSlider(Text.translatableWithFallback("settings.option.correction_mode","Error correction mode"),0,0,1) // default, lower bound, upper bound
-                .setDefaultValue(0)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.correction_mode","Decides how error correction will go"))
-                .setSaveConsumer(newValue -> DrawlerClient.correction_mode = newValue)
+        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()}; //change this to number of modes
+
+        drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.drawing_mode","check your localization file"),DrawlerClient.drawing_string)
+                .setDefaultValue(modes[0])
+                .setSelections(Arrays.stream(modes).toList())
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.drawing_mode","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.drawing_string = newValue)
                 .build());
 
+        drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.correction_mode","check your localization file"),DrawlerClient.correction_string)
+                .setDefaultValue(modes[0])
+                .setSelections(Arrays.stream(modes).toList())
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.correction_mode","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.correction_string = newValue)
+                .build());
 
         builder.setFallbackCategory(general);
         return builder.build();
