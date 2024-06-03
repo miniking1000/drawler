@@ -25,7 +25,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.map.MapState;
 import net.minecraft.text.Text;
-import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.RotationAxis;
@@ -44,14 +43,13 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 
 public class DrawlerClient implements ClientModInitializer {
     static String url = "";
+    static Random random = new Random();
+    static boolean worldrender = false;
     static Boolean isthere = false;
     static float scale = 1;
     static BufferedImage todrawimg;
@@ -82,6 +80,7 @@ public class DrawlerClient implements ClientModInitializer {
     private static KeyBinding openMenuKeyBinding;
     private static KeyBinding pauseKeyBinding;
     private static KeyBinding gobackKeyBinding;
+    private static KeyBinding renderKeyBinding;
     private static final Identifier MAP_CHKRBRD =
             new Identifier("minecraft:textures/map/map_background.png");
     @Override
@@ -105,7 +104,12 @@ public class DrawlerClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_KP_3,
                 "category.drawler.modsettings"
         ));
-
+        renderKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.drawler.render",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_KP_2,
+                "category.drawler.modsettings"
+        ));
 
 
 
@@ -113,9 +117,8 @@ public class DrawlerClient implements ClientModInitializer {
             dispatcher.register(ClientCommandManager.literal("reset_drawing")
                     .executes(context -> {
                         url = "";
-                        //curx = 0;
-                        //curz = 0;
                         curIND = 0;
+                        worldrender = false;
                         mapid = -1;
                         isdrawin = false;
                         needtocorrect = true;
@@ -314,6 +317,10 @@ public class DrawlerClient implements ClientModInitializer {
                 curIND -=togo; //если же мы можем вычесть, то просто вычитаем
                 send_message(String.format("Теперь текущая точка -> &a%d",curIND));
             }
+            while (renderKeyBinding.wasPressed()) {
+                worldrender = !worldrender;
+                send_message("Готово! :(");
+            }
         });
 
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
@@ -356,6 +363,96 @@ public class DrawlerClient implements ClientModInitializer {
                 buffer.vertex(89 * scale, 89 * scale, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f).next();
                 buffer.vertex(89 * scale, 6 + 1 * scale, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f).next();
                 tessellator.draw();
+            }
+        });
+
+        WorldRenderEvents.END.register(context -> {
+            if (worldrender) {
+                Camera camera = context.camera();
+                MatrixStack matrixStack = new MatrixStack();
+                switch (MinecraftClient.getInstance().player.getHorizontalFacing()) {
+                    case EAST -> {
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() + 0.64, MinecraftClient.getInstance().player.getY() + 1.122, MinecraftClient.getInstance().player.getZ() - 0.5);
+                        Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
+
+                        matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
+                        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(camera.getYaw() + 180.0F));
+
+                        matrixStack.translate(transformedPosition.x, transformedPosition.y, transformedPosition.z);
+
+                        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(270));
+
+
+                    }
+                    case WEST -> {
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX()-0.64, MinecraftClient.getInstance().player.getY() + 1.122, MinecraftClient.getInstance().player.getZ() + 0.5);
+                        Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
+
+                        matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
+                        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(camera.getYaw() + 180.0F));
+
+                        matrixStack.translate(transformedPosition.x, transformedPosition.y, transformedPosition.z);
+
+                        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(90));
+                    }
+                    case NORTH -> {
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() - 0.5, MinecraftClient.getInstance().player.getY() + 1.122, MinecraftClient.getInstance().player.getZ() - 0.64);
+                        Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
+
+                        matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
+                        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(camera.getYaw() + 180.0F));
+
+                        matrixStack.translate(transformedPosition.x, transformedPosition.y, transformedPosition.z);
+
+                        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(0));
+
+                    }
+                    case SOUTH -> {
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() + 0.5, MinecraftClient.getInstance().player.getY() + 1.122, MinecraftClient.getInstance().player.getZ() + 0.64);
+                        Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
+
+
+                        matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
+                        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(camera.getYaw() + 180.0F));
+
+                        matrixStack.translate(transformedPosition.x, transformedPosition.y, transformedPosition.z);
+
+                        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180));
+                    }
+                    default -> {
+                        worldrender = false;
+                        send_message("Нельзя рендерить если никуда не смотреть");
+                    }
+                }
+
+
+                Matrix4f positionMatrix = matrixStack.peek().getPositionMatrix();
+                Tessellator tessellator = Tessellator.getInstance();
+                BufferBuilder buffer = tessellator.getBuffer();
+
+                buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE);
+                buffer.vertex(positionMatrix, 0, 1, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f).next();
+                buffer.vertex(positionMatrix, 0, 0, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f).next();
+                buffer.vertex(positionMatrix, 1, 0, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f).next();
+                buffer.vertex(positionMatrix, 1, 1, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f).next();
+
+                RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
+                if (!isthere){
+                    try {
+                        MinecraftClient.getInstance().getTextureManager().registerTexture(new Identifier("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(new Identifier("drawler", "default.png")).get().getInputStream())));
+                        isthere = true;
+                    } catch (Exception ignored) {
+                    }
+                }
+                RenderSystem.setShaderTexture(0, new Identifier("drawler", "urlimg.png"));
+                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+                RenderSystem.disableCull();
+                RenderSystem.depthFunc(GL11.GL_ALPHA);
+
+                tessellator.draw();
+
+                RenderSystem.depthFunc(GL11.GL_ALPHA);
+                RenderSystem.enableCull();
             }
         });
     }

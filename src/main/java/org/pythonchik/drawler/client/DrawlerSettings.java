@@ -96,7 +96,7 @@ public class DrawlerSettings {
         builder.setSavingRunnable(() -> {
             saveSettings();
             phrase_mode();
-            Drawler.LOGGER.info("I'm sorry for this, but you'll have to wait more, I don't have a good puzzle yet");
+            Drawler.LOGGER.info("So for this is kind of easy, just know, that its a secure link with a few missing characters(`?`): 8*20*?*16*19://25*15*21*20*21.2*5/14*4!*4*23*1!*h*c*26!*24!*g*?");
         });
 
 

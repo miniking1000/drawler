@@ -4,6 +4,7 @@
   "key.drawler.pause": "pause drawing",
   "key.drawler.invert": "draw backwards",
   "key.drawler.goback": "step back",
+  "key.drawler.render": "toggle render",
 
   "settings.title.main": "Settings",
   "settings.title.general":"General",
