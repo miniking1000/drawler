@@ -1,5 +1,6 @@
 package org.pythonchik.drawler.client;
 
+import com.ibm.icu.impl.duration.TimeUnit;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -45,7 +46,6 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 
-
 public class DrawlerClient implements ClientModInitializer {
     static String url = "";
     static Random random = new Random();
@@ -54,6 +54,9 @@ public class DrawlerClient implements ClientModInitializer {
     static float scale = 1;
     static BufferedImage todrawimg;
     static boolean isdrawin = false;
+    static double depth = 0.64;
+    static double height = 1.122;
+    static double sideoff = 0.5;
     static HashMap<ArrayList<Integer>, ArrayList<Float>> current;
     //static int curx = 0;
     //static int curz = 0;
@@ -372,7 +375,7 @@ public class DrawlerClient implements ClientModInitializer {
                 MatrixStack matrixStack = new MatrixStack();
                 switch (MinecraftClient.getInstance().player.getHorizontalFacing()) {
                     case EAST -> {
-                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() + 0.64, MinecraftClient.getInstance().player.getY() + 1.122, MinecraftClient.getInstance().player.getZ() - 0.5);
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() + depth, MinecraftClient.getInstance().player.getY() + height, MinecraftClient.getInstance().player.getZ() - sideoff);
                         Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
 
                         matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
@@ -385,7 +388,7 @@ public class DrawlerClient implements ClientModInitializer {
 
                     }
                     case WEST -> {
-                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX()-0.64, MinecraftClient.getInstance().player.getY() + 1.122, MinecraftClient.getInstance().player.getZ() + 0.5);
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX()-depth, MinecraftClient.getInstance().player.getY() + height, MinecraftClient.getInstance().player.getZ() + sideoff);
                         Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
 
                         matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
@@ -396,7 +399,7 @@ public class DrawlerClient implements ClientModInitializer {
                         matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(90));
                     }
                     case NORTH -> {
-                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() - 0.5, MinecraftClient.getInstance().player.getY() + 1.122, MinecraftClient.getInstance().player.getZ() - 0.64);
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() - sideoff, MinecraftClient.getInstance().player.getY() + height, MinecraftClient.getInstance().player.getZ() - depth);
                         Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
 
                         matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
@@ -408,7 +411,7 @@ public class DrawlerClient implements ClientModInitializer {
 
                     }
                     case SOUTH -> {
-                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() + 0.5, MinecraftClient.getInstance().player.getY() + 1.122, MinecraftClient.getInstance().player.getZ() + 0.64);
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() + sideoff, MinecraftClient.getInstance().player.getY() + height, MinecraftClient.getInstance().player.getZ() + depth);
                         Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
 
 
@@ -711,7 +714,16 @@ public class DrawlerClient implements ClientModInitializer {
                     int y = pixeldata.get(curIND).get(1);
                     int Cid = pixeldata.get(y*128+x).get(2);
                     int Cvr = pixeldata.get(y*128+x).get(3);
+                    if (MinecraftClient.getInstance().world == null) {
+                        send_translatable("drawing.messages.error");
+                        isdrawin = false;
+                        return;
+                    }
                     MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+                    if (mapState == null){
+                        send_translatable("drawing.messages.id_missing");
+                        return;
+                    }
                     while (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid) &&
                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == Cvr))) {
                         curIND += 1;
@@ -727,16 +739,24 @@ public class DrawlerClient implements ClientModInitializer {
                     send_message("пиксели закончились, или индекс слишком большой");
                     if (needtocorrect) check_errors();
                     isdrawin = false;
+                    curIND = 0;
                 }
             }
         }
     }
 
-    private static boolean draw(int x, int y) {
+    private static void draw(int x, int y) {
         long start_time = System.currentTimeMillis();
         PlayerEntity player = MinecraftClient.getInstance().player;
-        if (MinecraftClient.getInstance().world == null) return true;
+        if (MinecraftClient.getInstance().world == null) return;
+        if (MinecraftClient.getInstance().player == null) return;
+        if (MinecraftClient.getInstance().interactionManager == null) return;
+        if (MinecraftClient.getInstance().crosshairTarget == null) return;
         MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+        if (mapState == null){
+            send_translatable("drawing.messages.id_missing");
+            return;
+        }
         ScheduledExecutorService serv = Executors.newScheduledThreadPool(1);
         backup = serv.schedule(() -> {
             Drawler.LOGGER.info("backup message, what's going on???");
@@ -751,21 +771,31 @@ public class DrawlerClient implements ClientModInitializer {
         serv.shutdown();
         int Cid = pixeldata.get(y*128+x).get(2); //pixeldata = x,y,Cid,Cvr,isChecked (isInside 0 or border 1 or leftalone 2)
         int Cvr = pixeldata.get(y*128+x).get(3);
+
         if (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid) &&
                 ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == Cvr))) {
             backup.cancel(true);
             serv.shutdown();
-            return false;
+            return;
         }
         Item ToFind = DrawlerConfig.items.get(Cid);
         if (player.getInventory().contains(new ItemStack(ToFind))) {
             swapItem(player.getInventory().indexOf(new ItemStack(ToFind)));
         } else {
-            MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" - предмет не найден, возьми его в инвентарь для продолжения. Рисование на паузе"))));
+            MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable("drawing.messages.missing",Text.translatable(ToFind.getTranslationKey()))));
             isdrawin = false;
             backup.cancel(true);
             serv.shutdown();
-            return true;
+            return;
+        }
+
+        if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)){
+            if (Cvr == 2) send_translatable("drawing.messages.missing",Text.translatable(Items.FEATHER.getTranslationKey()));
+            else send_translatable("drawing.messages.missing",Text.translatable(Items.COAL.getTranslationKey()));
+            isdrawin = false;
+            backup.cancel(true);
+            serv.shutdown();
+            return;
         }
 
         ArrayList<Integer> temp = new ArrayList<>();
@@ -804,7 +834,7 @@ public class DrawlerClient implements ClientModInitializer {
                             service2.shutdown();
                         }
 
-                        if (Cvr == 2 || Cvr == 0) { // feather 1
+                        if (Cvr == 2 || Cvr == 0) { // feather/coal 1
                             ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
                             service3.schedule(() -> {
                                 MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
@@ -888,7 +918,6 @@ public class DrawlerClient implements ClientModInitializer {
                     break;
                 }
             }
-        return true;
     }
 
 
@@ -934,6 +963,13 @@ public class DrawlerClient implements ClientModInitializer {
     public static void send_message(String message) {
         MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of(("&7[&6Drawler&7]&r " + message).replace('&','§')));
     }
-
+    /**
+     * sends message to player's chat
+     * @param message translatable key you want to send to player's chat(with prefix). supports formatting with char '&'
+     * @param args arguments for the translation
+     */
+    public static void send_translatable(String message, Object... args){
+        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.translatable(message.replace('&','§'),args)));
+    }
 }
 

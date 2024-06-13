@@ -102,6 +102,7 @@ public class DrawlerSettings {
 
         ConfigCategory general = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.general","general"));
         ConfigCategory drawing = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.drawing","drawing"));
+        ConfigCategory deeeeev = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.deeeeev","dev-cat"));
 
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 
@@ -161,6 +162,27 @@ public class DrawlerSettings {
                 .setSelections(Arrays.stream(modes).toList())
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.correction_mode","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.correction_string = newValue)
+                .build());
+
+        //render distance
+        deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.depth","check your localization file"), DrawlerClient.depth)
+                .setDefaultValue(0.64)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.depth","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.depth = newValue)
+                .build());
+
+        //render height
+        deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.height","check your localization file"), DrawlerClient.height)
+                .setDefaultValue(1.122)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.height","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.height = newValue)
+                .build());
+
+        //render side offset
+        deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.sideoff","check your localization file"), DrawlerClient.sideoff)
+                .setDefaultValue(0.5)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.sideoff","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.sideoff = newValue)
                 .build());
 
         builder.setFallbackCategory(general);

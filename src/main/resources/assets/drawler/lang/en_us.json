@@ -9,6 +9,7 @@
   "settings.title.main": "Settings",
   "settings.title.general":"General",
   "settings.title.drawing": "Drawing",
+  "settings.title.deeeeev": "Dev category",
   "settings.option.delay": "Delay",
   "settings.tooltip.delay": "Delay between each action in MS",
   "settings.option.scale": "Scale",
@@ -26,5 +27,17 @@
   "settings.drawing_mode.1": "Left to right, top to bottom",
   "settings.drawing_mode.2": "Random",
   "settings.option.rendering": "Rendering",
-  "settings.tooltip.rendering":"If you turn this on, you will see preview of your picture in your left upper corner of the screen"
+  "settings.tooltip.rendering":"If you turn this on, you will see preview of your picture in your left upper corner of the screen",
+  "settings.option.depth": "Depth",
+  "settings.tooltip.depth": "Decides how far image will render\nDO NOT CHANGE!",
+  "settings.option.height": "Height",
+  "settings.tooltip.height": "Decides how far up image will render\nDO NOT CHANGE!",
+  "settings.option.sideoff": "side offset",
+  "settings.tooltip.sideoff": "Decides how far sideways image will render\nDO NOT CHANGE!",
+
+
+  "drawing.messages.missing": "%d is not found, please take this item to inventory to continue. Drawing is now paused.",
+  "drawing.messages.id_missing": "map ID is not correct, map not found.",
+  "drawing.messages.error": "Error. Please do not do what you did anymore."
+
 }
