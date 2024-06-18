@@ -3,8 +3,8 @@
   "id": "drawler",
   "version": "${version}",
   "name": "drawler",
-  "description": "",
-  "authors": [],
+  "description": "Mod, that will allow you to draw without actually drawing.\n english/russian support -> https://discord.gg/utnkcmWUSF \n я играть там -> discord.com/invite/8XsKXesDBM",
+  "authors": ["miniking1000","pythonchik"],
   "contact": {
     "repo": "https://github.com/miniking1000/drawler"
   },
@@ -19,9 +19,6 @@
       "org.pythonchik.drawler.Drawler"
     ]
   },
-  "mixins": [
-    "drawler.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",

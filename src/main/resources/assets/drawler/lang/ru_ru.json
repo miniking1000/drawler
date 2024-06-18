@@ -26,5 +26,18 @@
   "settings.drawing_mode.1": "Слева направо, сверху вниз",
   "settings.drawing_mode.2": "Случайно",
   "settings.option.rendering": "Превью",
-  "settings.tooltip.rendering":"Если включено, то в верхнем левом углу будет превью изображение которе сейчас рисуется"
+  "settings.tooltip.rendering":"Если включено, то в верхнем левом углу будет превью изображение которе сейчас рисуется",
+  "settings.option.depth": "Расстояние",
+  "settings.tooltip.depth": "Расстояние между игроком и изображением\nНЕ МЕНЯТЬ!",
+  "settings.option.height": "Высота",
+  "settings.tooltip.height": "Решает как высоко будет рендерится изображение\nНЕ МЕНЯТЬ!",
+  "settings.option.sideoff": "Сдвиг",
+  "settings.tooltip.sideoff": "Решает насколько большой будет сдвиг в бок\nНЕ МЕНЯТЬ!",
+  "settings.option.after": "Полезная кнопка",
+  "settings.tooltip.after": "Включает и выключает несколько линий кода, просто не надо её трогать\nНЕ МЕНЯТЬ!",
+
+
+  "drawing.messages.missing": "%d - предмет не найден, возьми его в инвентарь для продолжения. Рисование на паузе",
+  "drawing.messages.id_missing": "ID карты не правильный, карта не найдена..",
+  "drawing.messages.error": "Ошибка. Пожалуйста, не надо больше делать что Вы только что сделали."
 }
