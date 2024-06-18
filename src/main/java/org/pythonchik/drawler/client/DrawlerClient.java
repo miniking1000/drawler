@@ -1,6 +1,5 @@
 package org.pythonchik.drawler.client;
 
-import com.ibm.icu.impl.duration.TimeUnit;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -20,6 +19,7 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -57,6 +57,7 @@ public class DrawlerClient implements ClientModInitializer {
     static double depth = 0.64;
     static double height = 1.122;
     static double sideoff = 0.5;
+    static boolean after = false;
     static HashMap<ArrayList<Integer>, ArrayList<Float>> current;
     //static int curx = 0;
     //static int curz = 0;
@@ -85,7 +86,7 @@ public class DrawlerClient implements ClientModInitializer {
     private static KeyBinding gobackKeyBinding;
     private static KeyBinding renderKeyBinding;
     private static final Identifier MAP_CHKRBRD =
-            new Identifier("minecraft:textures/map/map_background.png");
+            Identifier.of("minecraft:textures/map/map_background.png");
     @Override
     public void onInitializeClient() {
 
@@ -286,7 +287,9 @@ public class DrawlerClient implements ClientModInitializer {
                                         mapid = IntegerArgumentType.getInteger(context, "mapID");
                                         url = StringArgumentType.getString(context, "url");
                                         ScheduledExecutorService backup = Executors.newScheduledThreadPool(1);
-                                        backup.schedule(() -> processImage(url), 0, TimeUnit.MILLISECONDS);
+                                        backup.schedule(() -> {
+                                            processImage(url);
+                                        }, 0, TimeUnit.MILLISECONDS);
                                         backup.shutdown();
                                         return 1;
                                     }))));
@@ -328,17 +331,7 @@ public class DrawlerClient implements ClientModInitializer {
 
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (needtorender) {
-                Tessellator tessellator = Tessellator.getInstance();
-                BufferBuilder buffer = tessellator.getBuffer();
-                RenderSystem.setShaderTexture(0, MAP_CHKRBRD);
-                RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
-                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-                buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE);
-                buffer.vertex(3 + 1 * scale, 3 + 1 * scale, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f).next();
-                buffer.vertex(3 + 1 * scale, 92 * scale, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f).next();
-                buffer.vertex(92 * scale, 92 * scale, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f).next();
-                buffer.vertex(92 * scale, 3 + 1 * scale, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f).next();
-                tessellator.draw();
+               drawContext.drawTexture(MAP_CHKRBRD, (int) (3+scale), (int) (3+scale),0, 1F, 1F, (int) (92*scale),(int) (92*scale),(int) (92*scale)+1,(int) (92*scale)+1);
 
                 if (!isthere) {
                     try {
@@ -347,27 +340,21 @@ public class DrawlerClient implements ClientModInitializer {
                         try (InputStream stream = connection.getInputStream()) {
                             NativeImage image = NativeImage.read(stream);
 
-                            MinecraftClient.getInstance().getTextureManager().registerTexture(new Identifier("drawler", "urlimg.png"), new NativeImageBackedTexture(image));
+                            MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), new NativeImageBackedTexture(image));
                             isthere = true;
                         }
                     } catch (Exception e) {
                         try {
-                            MinecraftClient.getInstance().getTextureManager().registerTexture(new Identifier("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(new Identifier("drawler", "default.png")).get().getInputStream())));
+                            MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(Identifier.of("drawler", "default.png")).get().getInputStream())));
                         } catch (Exception ignored) {
                         }
                     }
                 }
-                RenderSystem.setShaderTexture(0, new Identifier("drawler", "urlimg.png"));
-                RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
-                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-                buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE);
-                buffer.vertex(6 + 1 * scale, 6 + 1 * scale, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f).next();
-                buffer.vertex(6 + 1 * scale, 89 * scale, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f).next();
-                buffer.vertex(89 * scale, 89 * scale, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f).next();
-                buffer.vertex(89 * scale, 6 + 1 * scale, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f).next();
-                tessellator.draw();
+                drawContext.drawTexture(Identifier.of("drawler","urlimg.png"), (int) (3+3*scale), (int) (3+3*scale),0, 1F, 1F, (int) (86*scale),(int) (86*scale),(int) (86*scale)+1,(int) (86*scale)+1);
+
             }
         });
+
 
         WorldRenderEvents.END.register(context -> {
             if (worldrender) {
@@ -388,7 +375,7 @@ public class DrawlerClient implements ClientModInitializer {
 
                     }
                     case WEST -> {
-                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX()-depth, MinecraftClient.getInstance().player.getY() + height, MinecraftClient.getInstance().player.getZ() + sideoff);
+                        Vec3d targetPosition = new Vec3d(MinecraftClient.getInstance().player.getX() - depth, MinecraftClient.getInstance().player.getY() + height, MinecraftClient.getInstance().player.getZ() + sideoff);
                         Vec3d transformedPosition = targetPosition.subtract(camera.getPos());
 
                         matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
@@ -424,48 +411,50 @@ public class DrawlerClient implements ClientModInitializer {
                     }
                     default -> {
                         worldrender = false;
-                        send_message("Нельзя рендерить если никуда не смотреть");
+                        send_message("you can not.");
                     }
                 }
 
-
                 Matrix4f positionMatrix = matrixStack.peek().getPositionMatrix();
                 Tessellator tessellator = Tessellator.getInstance();
-                BufferBuilder buffer = tessellator.getBuffer();
+                BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
 
-                buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE);
-                buffer.vertex(positionMatrix, 0, 1, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f).next();
-                buffer.vertex(positionMatrix, 0, 0, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f).next();
-                buffer.vertex(positionMatrix, 1, 0, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f).next();
-                buffer.vertex(positionMatrix, 1, 1, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f).next();
+                buffer.vertex(positionMatrix, 0, 1, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f);
+                buffer.vertex(positionMatrix, 0, 0, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f);
+                buffer.vertex(positionMatrix, 1, 0, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f);
+                buffer.vertex(positionMatrix, 1, 1, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f);
 
-                RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
+                RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
                 if (!isthere){
                     try {
-                        MinecraftClient.getInstance().getTextureManager().registerTexture(new Identifier("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(new Identifier("drawler", "default.png")).get().getInputStream())));
+                        MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(Identifier.of("drawler", "default.png")).get().getInputStream())));
                         isthere = true;
                     } catch (Exception ignored) {
                     }
                 }
-                RenderSystem.setShaderTexture(0, new Identifier("drawler", "urlimg.png"));
+                RenderSystem.setShaderTexture(0, Identifier.of("drawler", "urlimg.png"));
                 RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-                RenderSystem.disableCull();
-                RenderSystem.depthFunc(GL11.GL_ALPHA);
-
-                tessellator.draw();
+                if (after) {
+                    RenderSystem.disableCull();
+                    RenderSystem.depthFunc(GL11.GL_ALPHA);
+                }
+                BufferRenderer.drawWithGlobalProgram(buffer.end());
 
                 RenderSystem.depthFunc(GL11.GL_ALPHA);
                 RenderSystem.enableCull();
+
             }
-        });
-    }
+
+        }); //end of world render
+    } //end of client init
 
 
 
     public static void check_errors(){
         send_message("Начинаем проверку на ошибки");
         tocorrect = new ArrayList<>();
-        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+
         if (mapState != null) {
             for (int y = 0; y < 128; y++) {
                 for (int x = 0; x < 128; x++) {
@@ -638,7 +627,7 @@ public class DrawlerClient implements ClientModInitializer {
 
             NativeImage nativeImage = NativeImage.read(new ByteArrayInputStream(imageBytes));
             NativeImageBackedTexture texture = new NativeImageBackedTexture(nativeImage);
-            MinecraftClient.getInstance().getTextureManager().registerTexture(new Identifier("drawler", "urlimg.png"), texture);
+            MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), texture);
             isthere = true;
             todrawimg = resizedImage;
             isdrawin = false;
@@ -719,7 +708,7 @@ public class DrawlerClient implements ClientModInitializer {
                         isdrawin = false;
                         return;
                     }
-                    MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+                    MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
                     if (mapState == null){
                         send_translatable("drawing.messages.id_missing");
                         return;
@@ -752,7 +741,7 @@ public class DrawlerClient implements ClientModInitializer {
         if (MinecraftClient.getInstance().player == null) return;
         if (MinecraftClient.getInstance().interactionManager == null) return;
         if (MinecraftClient.getInstance().crosshairTarget == null) return;
-        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
         if (mapState == null){
             send_translatable("drawing.messages.id_missing");
             return;
@@ -784,6 +773,7 @@ public class DrawlerClient implements ClientModInitializer {
         } else {
             MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable("drawing.messages.missing",Text.translatable(ToFind.getTranslationKey()))));
             isdrawin = false;
+            curIND += 1;
             backup.cancel(true);
             serv.shutdown();
             return;
@@ -793,6 +783,7 @@ public class DrawlerClient implements ClientModInitializer {
             if (Cvr == 2) send_translatable("drawing.messages.missing",Text.translatable(Items.FEATHER.getTranslationKey()));
             else send_translatable("drawing.messages.missing",Text.translatable(Items.COAL.getTranslationKey()));
             isdrawin = false;
+            curIND -= 1;
             backup.cancel(true);
             serv.shutdown();
             return;

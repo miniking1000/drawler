@@ -34,6 +34,9 @@
   "settings.tooltip.height": "Decides how far up image will render\nDO NOT CHANGE!",
   "settings.option.sideoff": "side offset",
   "settings.tooltip.sideoff": "Decides how far sideways image will render\nDO NOT CHANGE!",
+  "settings.option.after": "Useful button",
+  "settings.tooltip.after": "Toggles some lines of code, just don't touch it\nDO NOT CHANGE!",
+
 
 
   "drawing.messages.missing": "%d is not found, please take this item to inventory to continue. Drawing is now paused.",

@@ -90,7 +90,7 @@ public class DrawlerSettings {
 
         ConfigBuilder builder = ConfigBuilder.create()
                 .setParentScreen(parent)
-                .setDefaultBackgroundTexture(new Identifier("minecraft:textures/block/honeycomb_block.png"))
+                .setDefaultBackgroundTexture(Identifier.ofVanilla("textures/block/honeycomb_block.png"))
                 .setTitle(Text.translatableWithFallback("settings.title.main","settings"));
 
         builder.setSavingRunnable(() -> {
@@ -183,6 +183,13 @@ public class DrawlerSettings {
                 .setDefaultValue(0.5)
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.sideoff","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.sideoff = newValue)
+                .build());
+
+        //after button
+        deeeeev.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.after","check your localization file"), DrawlerClient.after)
+                .setDefaultValue(false)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.after","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.after = newValue)
                 .build());
 
         builder.setFallbackCategory(general);
