@@ -6,6 +6,7 @@ import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.Yaml;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -16,7 +17,6 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.util.*;
-import java.util.function.Supplier;
 
 
 public class DrawlerSettings {
@@ -31,6 +31,7 @@ public class DrawlerSettings {
         data.put("needtocorrect",DrawlerClient.needtocorrect);
         data.put("correction_mode",DrawlerClient.correction_mode);
         data.put("drawing_mode",DrawlerClient.drawing_mode);
+        data.put("idDev",DrawlerClient.isDev);
 
 
         //add line here to save value
@@ -59,6 +60,7 @@ public class DrawlerSettings {
             DrawlerClient.needtocorrect = (Boolean) data.getOrDefault("needtocorrect", true);
             DrawlerClient.correction_mode = (Integer) data.getOrDefault("correction_mode",0);
             DrawlerClient.drawing_mode = (Integer) data.getOrDefault("drawing_mode",0);
+            DrawlerClient.isDev = (Boolean) data.getOrDefault("idDev",false);
             //add line here to load value
 
         } catch (Exception ignored) {}
@@ -66,12 +68,14 @@ public class DrawlerSettings {
 
 
     public static void phrase_mode() {
-        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()};
+        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString()};
 
         if (DrawlerClient.drawing_string.equals(modes[0])) {
             DrawlerClient.drawing_mode = 0;
         } else if (DrawlerClient.drawing_string.equals(modes[1])) {
             DrawlerClient.drawing_mode = 1;
+        } else if (DrawlerClient.drawing_string.equals(modes[2])) {
+            DrawlerClient.drawing_mode = 2;
         }
         if (DrawlerClient.correction_string.equals(modes[0])) {
             DrawlerClient.correction_mode = 0;
@@ -96,7 +100,7 @@ public class DrawlerSettings {
 
         ConfigCategory general = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.general","general"));
         ConfigCategory drawing = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.drawing","drawing"));
-        ConfigCategory deeeeev = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.deeeeev","dev-cat"));
+
 
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 
@@ -135,49 +139,62 @@ public class DrawlerSettings {
                 .setSaveConsumer(newValue -> DrawlerClient.needtocorrect = newValue)
                 .build());
 
-        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()}; //change this to number of modes
+        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString()}; //change this to number of modes
+        String[] Cmodes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()}; //change this to number of modes
 
-        drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.drawing_mode","check your localization file"),DrawlerClient.drawing_string)
+        drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.drawing_mode","check your localization file"),modes[DrawlerClient.drawing_mode])
                 .setDefaultValue(modes[0])
                 .setSelections(Arrays.stream(modes).toList())
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.drawing_mode","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.drawing_string = newValue)
                 .build());
 
-        drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.correction_mode","check your localization file"),DrawlerClient.correction_string)
-                .setDefaultValue(modes[0])
-                .setSelections(Arrays.stream(modes).toList())
+        drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.correction_mode","check your localization file"),Cmodes[DrawlerClient.correction_mode])
+                .setDefaultValue(Cmodes[0])
+                .setSelections(Arrays.stream(Cmodes).toList())
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.correction_mode","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.correction_string = newValue)
                 .build());
 
-        //render distance
-        deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.depth","check your localization file"), DrawlerClient.depth)
-                .setDefaultValue(0.64)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.depth","check your localization file"))
-                .setSaveConsumer(newValue -> DrawlerClient.depth = newValue)
-                .build());
+        if (DrawlerClient.isDev) {
+            ConfigCategory deeeeev = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.deeeeev", "dev-cat"));
 
-        //render height
-        deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.height","check your localization file"), DrawlerClient.height)
-                .setDefaultValue(1.122)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.height","check your localization file"))
-                .setSaveConsumer(newValue -> DrawlerClient.height = newValue)
-                .build());
+            //render distance
+            deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.depth", "check your localization file"), DrawlerClient.depth)
+                    .setDefaultValue(0.64)
+                    .setTooltip(Text.translatableWithFallback("settings.tooltip.depth", "check your localization file"))
+                    .setSaveConsumer(newValue -> DrawlerClient.depth = newValue)
+                    .build());
 
-        //render side offset
-        deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.sideoff","check your localization file"), DrawlerClient.sideoff)
-                .setDefaultValue(0.5)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.sideoff","check your localization file"))
-                .setSaveConsumer(newValue -> DrawlerClient.sideoff = newValue)
-                .build());
+            //render height
+            deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.height", "check your localization file"), DrawlerClient.height)
+                    .setDefaultValue(1.122)
+                    .setTooltip(Text.translatableWithFallback("settings.tooltip.height", "check your localization file"))
+                    .setSaveConsumer(newValue -> DrawlerClient.height = newValue)
+                    .build());
 
-        //after button
-        deeeeev.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.after","check your localization file"), DrawlerClient.after)
-                .setDefaultValue(false)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.after","check your localization file"))
-                .setSaveConsumer(newValue -> DrawlerClient.after = newValue)
-                .build());
+            //render side offset
+            deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.sideoff", "check your localization file"), DrawlerClient.sideoff)
+                    .setDefaultValue(0.5)
+                    .setTooltip(Text.translatableWithFallback("settings.tooltip.sideoff", "check your localization file"))
+                    .setSaveConsumer(newValue -> DrawlerClient.sideoff = newValue)
+                    .build());
+
+            //after button
+            deeeeev.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.after", "check your localization file"), DrawlerClient.after)
+                    .setDefaultValue(false)
+                    .setTooltip(Text.translatableWithFallback("settings.tooltip.after", "check your localization file"))
+                    .setSaveConsumer(newValue -> DrawlerClient.after = newValue)
+                    .build());
+
+            //debug button
+            deeeeev.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.debug", "check your localization file"), DrawlerClient.isDebug)
+                    .setDefaultValue(false)
+                    .setTooltip(Text.translatableWithFallback("settings.tooltip.debug", "check your localization file"))
+                    .setSaveConsumer(newValue -> DrawlerClient.isDebug = newValue)
+                    .build());
+
+        }
 
         builder.setFallbackCategory(general);
         return builder.build();

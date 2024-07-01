@@ -48,7 +48,6 @@ import java.util.concurrent.*;
 
 public class DrawlerClient implements ClientModInitializer {
     static String url = "";
-    static Random random = new Random();
     static boolean worldrender = false;
     static Boolean isthere = false;
     static float scale = 1;
@@ -58,6 +57,8 @@ public class DrawlerClient implements ClientModInitializer {
     static double height = 1.122;
     static double sideoff = 0.5;
     static boolean after = false;
+    static boolean isDebug = false;
+    static boolean isDev = false;
     static HashMap<ArrayList<Integer>, ArrayList<Float>> current;
     //static int curx = 0;
     //static int curz = 0;
@@ -69,8 +70,9 @@ public class DrawlerClient implements ClientModInitializer {
     static int drawing_mode = 0;
     //0 = default, from left to right, up to down...
     //1 = random, just random.
-    static String drawing_string = "Осталось с прошлого сохранения";
-    static String correction_string = "Осталось с прошлого сохранения";
+    //2 = least popular color to most popular
+    static String drawing_string = "";
+    static String correction_string = "";
     static ArrayList<ArrayList<Integer>> pixeldata = new ArrayList<>();
     static boolean mode34 = true;
     static boolean needtocorrect = true;
@@ -120,8 +122,9 @@ public class DrawlerClient implements ClientModInitializer {
                         needtocorrect = true;
                         isthere = false;
                         todrawimg = null;
+                        ItemMap = new HashMap<>();
                         current = new HashMap<>();
-                        send_message("выполнено!...");
+                        send_translatable("drawing.messages.done");
                         return 1;
                     }));
         });
@@ -180,7 +183,7 @@ public class DrawlerClient implements ClientModInitializer {
                                     case NORTH -> current = DrawlerConfig.north;
                                     case SOUTH -> current = DrawlerConfig.south;
                                     default -> {
-                                        send_message("Вам нужно смотреть прямо на холст во время написания координаты");
+                                        send_translatable("drawing.messages.no_direction");
                                         return 1;
                                     }
                                 }
@@ -231,7 +234,7 @@ public class DrawlerClient implements ClientModInitializer {
                                         case NORTH -> current = DrawlerConfig.north;
                                         case SOUTH -> current = DrawlerConfig.south;
                                         default -> {
-                                            send_message("Вам нужно смотреть прямо на холст во время написания координаты");
+                                            send_translatable("drawing.messages.no_direction");
                                             return 1;
                                         }
                                     }
@@ -275,7 +278,7 @@ public class DrawlerClient implements ClientModInitializer {
                     .then(ClientCommandManager.argument("mapID",IntegerArgumentType.integer(0))
                             .then(ClientCommandManager.argument("url", StringArgumentType.greedyString())
                                     .executes(context -> {
-                                        send_message("Обработка изображения, пожалуйста подождите...");
+                                        send_translatable("drawing.messages.processing_image");
                                         mapid = IntegerArgumentType.getInteger(context, "mapID");
                                         url = StringArgumentType.getString(context, "url");
                                         ScheduledExecutorService backup = Executors.newScheduledThreadPool(1);
@@ -310,7 +313,7 @@ public class DrawlerClient implements ClientModInitializer {
                             }
                         }
                     }
-                    send_message("Осталось рисовать примерно &c%dМС".formatted(timeMS));
+                    send_message("Осталось рисовать примерно &c%dч %dмин %dс".formatted(timeMS/3600000,(timeMS/60000)%60,(timeMS/1000)%60));
                     gonext();
                 } else {
                     send_message("Останавливаемся на точке &a%d".formatted(curIND));
@@ -445,16 +448,18 @@ public class DrawlerClient implements ClientModInitializer {
 
 
     public static void check_errors(){
-        send_message("Начинаем проверку на ошибки");
+        send_translatable("drawing.messages.start_checking");
         tocorrect = new ArrayList<>();
         MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
-
+        int timeMS = 0;
         if (mapState != null) {
             for (int y = 0; y < 128; y++) {
                 for (int x = 0; x < 128; x++) {
                     if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
                         tocorrect.add(new ArrayList<>(List.of(x, y)));
+                        Color color = new Color(todrawimg.getRGB(x, y));
+                        timeMS += delay * (DrawlerConfig.getColorVariant(color) == 1 ? 2 : DrawlerConfig.getColorVariant(color) == 3 ? 5 : 4);
                         iscorrectin = true;
                         isdrawin = true;
                     }
@@ -467,7 +472,7 @@ public class DrawlerClient implements ClientModInitializer {
                 //TODO save pick if you said so in config
                 //TODO continued drawing in queue
             } else {
-                send_message("Проверка ошибок завершена, выявлено %d ошибок. Переходим к исправлению".formatted(tocorrect.size()));
+                send_message("Проверка ошибок завершена, выявлено %d ошибок. Переходим к исправлению, это займет примерно &c%dч %dмин %dс".formatted(tocorrect.size(),timeMS/3600000,(timeMS/60000)%60,(timeMS/1000)%60));
                 gonext();
             }
         } else {
@@ -480,7 +485,7 @@ public class DrawlerClient implements ClientModInitializer {
             BufferedImage resizedImage = resizeImage(originalImage, 128, 128); //TODO this line will break 2x1 picks, rework that
 
             ClientPlayerEntity player = MinecraftClient.getInstance().player;
-            Drawler.LOGGER.info(player.getHorizontalFacing().toString());
+            debug(player.getHorizontalFacing().toString());
             switch (player.getHorizontalFacing()) {
                 case EAST -> current = DrawlerConfig.east;
                 case WEST -> current = DrawlerConfig.west;
@@ -513,7 +518,7 @@ public class DrawlerClient implements ClientModInitializer {
                 }
                 if (mode34 && ItemMap.size() > 34) {
 
-                    //Drawler.LOGGER.info("inside if we got: " + ItemMap + " - itemmap | colormap - " + ColorMap + " | colors - " + colors);
+                    //debug("inside if we got: " + ItemMap + " - itemmap | colormap - " + ColorMap + " | colors - " + colors);
                     int lowest = 16384+1;
                     Color key = null;
                     for (Map.Entry<Color,Integer> entry: ColorMap.entrySet()){
@@ -522,7 +527,7 @@ public class DrawlerClient implements ClientModInitializer {
                         key = entry.getKey();
                     }
                     colors.remove(key);
-                    //Drawler.LOGGER.info("removed - " + key + " " + colors + " - colors");
+                    //debug("removed - " + key + " " + colors + " - colors");
                 }
             } while (mode34 && ItemMap.size() > 34);
 
@@ -576,46 +581,40 @@ public class DrawlerClient implements ClientModInitializer {
                         temp2.add(DrawlerConfig.getColorID(new Color(resizedImage.getRGB(x,y))));
                         temp2.add(DrawlerConfig.getColorVariant(new Color(resizedImage.getRGB(x,y))));
                         temp.add(temp2);
-                        //x cords y cords Cid, Cvr
-                        //[[x,y,id,vr],[x,y,id,vr]...]
-                      //[[0,0,1,1],[0,1,1,1],[0,2,1,0]
-                       //[1,0,1,1],[1,1,1,0],[1,2,2,0]
-                       //[2,0,3,1],[2,1,3,0],[2,2,3,0]]
-                        // ->
-                        //[1,2,2,0],[2,0,3,1],[2,1,3,0],[2,2,3,0],[1,1,1,0],[0,2,1,0],[0,0,1,1],[0,1,1,1],[1,0,1,1]]
                     }
                 }
-
-                /*
-                while (temp.size() != 0) {
-                    int lowest = 16384 + 1;
-                    Color key = null;
-                    for (Map.Entry<Color, Integer> entry : ColorMap.entrySet()) {
-                        if (lowest < entry.getValue()) continue;
-                        lowest = entry.getValue();
-                        key = entry.getKey();
-                    }
-                    Drawler.LOGGER.info("after for colorMap this is the key and value: " + key + " " + lowest);
-                    int lowid = DrawlerConfig.getColorID(key);
-                    int lowvr = DrawlerConfig.getColorVariant(key);
-                    Drawler.LOGGER.info("after ids and vr also temp size - " + lowid + " " + lowvr + " " + temp.size());
-
-                    ArrayList<ArrayList<Integer>> temp3 = new ArrayList<>();
-                    for (ArrayList<Integer> tmpentry : temp){
-                        temp3.add(tmpentry);
-                    }
-
-                    for (ArrayList<Integer> entry : temp3){
-                        Drawler.LOGGER.info("inside for " + entry.get(2) + " " + entry.get(3) + " " + entry);
-                        if (entry.get(2).equals(lowid) && entry.get(3).equals(lowvr)){
-                            pixeldata.add(entry);
-                            temp.remove(entry);
+                HashMap<Integer,ArrayList<ArrayList<Integer>>> ids = new HashMap<>();
+                for (ArrayList<Integer> entry: temp){
+                    ArrayList<ArrayList<Integer>> indexes = ids.getOrDefault(entry.get(2),new ArrayList<>());
+                    indexes.add(new ArrayList<Integer>(List.of(entry.get(0),entry.get(1))));
+                    ids.put(entry.get(2),indexes);
+                }
+                while (!ids.isEmpty()) {
+                    int lowest = Integer.MAX_VALUE;
+                    int lowkey = 0;
+                    for (Integer key : ids.keySet()){
+                        if (ids.get(key).size() < lowest){
+                            lowest = ids.get(key).size();
+                            lowkey = key;
                         }
                     }
-                    ColorMap.remove(key);
-                    Drawler.LOGGER.info("color map removed, here is current: " + ColorMap);
+                    for (ArrayList<Integer> index : ids.get(lowkey)){
+                        for (ArrayList<Integer> haha : temp) {
+                            if (Objects.equals(haha.get(0), index.get(0)) && Objects.equals(haha.get(1), index.get(1))) {
+                                pixeldata.add(haha);
+                                break;
+                            }
+                        }
+                    }
+                    ids.remove(lowkey);
                 }
-                */
+                //x cords y cords Cid, Cvr
+                //[[x,y,id,vr],[x,y,id,vr]...]
+                //[[0,0,1,1],[0,1,1,1],[0,2,1,0]
+                //[1,0,1,1],[1,1,1,0],[1,2,2,0]
+                //[2,0,3,1],[2,1,3,0],[2,2,3,0]]
+                // ->
+                //[1,2,2,0],[2,0,3,1],[2,1,3,0],[2,2,3,0],[1,1,1,0],[0,2,1,0],[0,0,1,1],[0,1,1,1],[1,0,1,1]]
 
             }
             else { //TODO add more drawing modes
@@ -702,11 +701,12 @@ public class DrawlerClient implements ClientModInitializer {
                     check_errors();
                 }
             } else {
-                if (pixeldata.size() > curIND) {
+                if (pixeldata.size() >= curIND) {
                     int x = pixeldata.get(curIND).get(0);
                     int y = pixeldata.get(curIND).get(1);
-                    int Cid = pixeldata.get(y*128+x).get(2);
-                    int Cvr = pixeldata.get(y*128+x).get(3);
+                    int Cid = pixeldata.get(curIND).get(2);
+                    int Cvr = pixeldata.get(curIND).get(3);
+                    debug(curIND + " " + x + " " + y + " " + Cid + " " + Cvr);
                     if (MinecraftClient.getInstance().world == null) {
                         send_translatable("drawing.messages.error");
                         isdrawin = false;
@@ -722,8 +722,9 @@ public class DrawlerClient implements ClientModInitializer {
                         curIND += 1;
                         x = pixeldata.get(curIND).get(0);
                         y = pixeldata.get(curIND).get(1);
-                        Cid = pixeldata.get(y*128+x).get(2);
-                        Cvr = pixeldata.get(y*128+x).get(3);
+                        Cid = pixeldata.get(curIND).get(2);
+                        Cvr = pixeldata.get(curIND).get(3);
+                        debug(curIND + " " + x + " " + y + " " + Cid + " " + Cvr + " - map was correct");
                     }
                     draw(x, y);
 
@@ -752,7 +753,7 @@ public class DrawlerClient implements ClientModInitializer {
         }
         ScheduledExecutorService serv = Executors.newScheduledThreadPool(1);
         backup = serv.schedule(() -> {
-            Drawler.LOGGER.info("backup message, what's going on???");
+            debug("backup message, what's going on???");
             int togo = 2;
             while (curIND - togo < 0) { //если Х меньше чем надо пройти
                 togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
@@ -762,8 +763,8 @@ public class DrawlerClient implements ClientModInitializer {
             DrawlerClient.gonext();
         }, delay*20L, TimeUnit.MILLISECONDS);
         serv.shutdown();
-        int Cid = pixeldata.get(y*128+x).get(2); //pixeldata = x,y,Cid,Cvr,isChecked (isInside 0 or border 1 or leftalone 2)
-        int Cvr = pixeldata.get(y*128+x).get(3);
+        int Cid = pixeldata.get(curIND).get(2); //pixeldata = x,y,Cid,Cvr
+        int Cvr = pixeldata.get(curIND).get(3);
 
         if (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid) &&
                 ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == Cvr))) {
@@ -806,25 +807,25 @@ public class DrawlerClient implements ClientModInitializer {
                 player.getInventory().markDirty();
 
                 ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
-                Drawler.LOGGER.info(list.getKey() + " " + list.getValue() + " " + Cid + " " + Cvr + " " + key_point(start_time) + " - before delays");
-                Drawler.LOGGER.info(pixeldata.get(y*128+x) + " ");
+                debug(list.getKey() + " " + list.getValue() + " " + Cid + " " + Cvr + " " + key_point(start_time) + " - before delays");
+                debug(pixeldata.get(curIND) + " ");
                 service.schedule(() -> {
                     MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
-                    //Drawler.LOGGER.info(key_point(start_time) + " - I just painted");
+                    //debug(key_point(start_time) + " - I just painted");
 
                     {
                         if (Cvr == 2) { // feather 1
                             ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                             service2.schedule(() -> {
                                 swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
-                                //Drawler.LOGGER.info(key_point(start_time) + " - I just swapped to feather");
+                                //debug(key_point(start_time) + " - I just swapped to feather");
                                 }, delay, TimeUnit.MILLISECONDS);
                             service2.shutdown();
                         } else if (Cvr == 3 || Cvr == 0) { //coal 2
                             ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                             service2.schedule(() -> {
                                 swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
-                                //Drawler.LOGGER.info(key_point(start_time) + " - I just swapped to coal");
+                                //debug(key_point(start_time) + " - I just swapped to coal");
                                 }, delay, TimeUnit.MILLISECONDS);
                             service2.shutdown();
                         }
@@ -833,18 +834,18 @@ public class DrawlerClient implements ClientModInitializer {
                             ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
                             service3.schedule(() -> {
                                 MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
-                                //Drawler.LOGGER.info(key_point(start_time) + " - I just painted with feather(1) or coal(1)");
+                                //debug(key_point(start_time) + " - I just painted with feather(1) or coal(1)");
                                 }, delay* 2L, TimeUnit.MILLISECONDS);
                             service3.shutdown();
                         } else if (Cvr == 3) { //coal 2
                             ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
                             service3.schedule(() -> {
                                 MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
-                                //Drawler.LOGGER.info(key_point(start_time) + " - I just painted with coal(1/2)");
+                                //debug(key_point(start_time) + " - I just painted with coal(1/2)");
                                 ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
                                 service4.schedule(() -> {
                                     MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
-                                    //Drawler.LOGGER.info(key_point(start_time) + " - I just painted with coal(2/2)");
+                                    //debug(key_point(start_time) + " - I just painted with coal(2/2)");
                                     }, delay, TimeUnit.MILLISECONDS);
                                 service4.shutdown();
                                 }, delay* 2L, TimeUnit.MILLISECONDS);
@@ -864,7 +865,7 @@ public class DrawlerClient implements ClientModInitializer {
                                         curIND =127*127; //ставим его на максимум прошлого ряда
                                     }
                                     curIND -=togo; //если же мы можем вычесть, то просто вычитаем
-                                    Drawler.LOGGER.info("now was an else, redrawing???");
+                                    debug("now was an else, redrawing???");
                                 }
                                 gonext();
                             }, delay* 3L, TimeUnit.MILLISECONDS);
@@ -882,7 +883,7 @@ public class DrawlerClient implements ClientModInitializer {
                                             curIND =127*127; //ставим его на максимум прошлого ряда
                                         }
                                         curIND -=togo; //если же мы можем вычесть, то просто вычитаем
-                                        Drawler.LOGGER.info("now was an else, redrawing???");
+                                        debug("now was an else, redrawing???");
                                     }
                                     gonext();
                                 }, delay* 4L, TimeUnit.MILLISECONDS);
@@ -900,7 +901,7 @@ public class DrawlerClient implements ClientModInitializer {
                                             curIND =127*127; //ставим его на максимум прошлого ряда
                                         }
                                         curIND -=togo; //если же мы можем вычесть, то просто вычитаем
-                                        Drawler.LOGGER.info("now was an else, redrawing???");
+                                        debug("now was an else, redrawing???");
                                     }
                                     gonext();
                                 }, delay, TimeUnit.MILLISECONDS);
@@ -914,6 +915,13 @@ public class DrawlerClient implements ClientModInitializer {
             }
     }
 
+    /**
+     * resizes image to a given width and height
+     * @param originalImage original image, that you want to resize
+     * @param width width of result image
+     * @param height height of result image
+     * @return resized image
+     */
 
     private static BufferedImage resizeImage(BufferedImage originalImage, int width, int height) {
         BufferedImage resizedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -923,6 +931,12 @@ public class DrawlerClient implements ClientModInitializer {
         return resizedImage;
     }
 
+    /**
+     * finds closes available color in a subset of minecraft colors
+     * @param pixelColor color, to witch return color be the closest to
+     * @param colors a subset of minecraft colors
+     * @return a Color that is closes to a given pixelColor from colors
+     */
     private static Color findClosestMinecraftColor(Color pixelColor, ArrayList<Color> colors) {
         Color closestColor = null;
         double minDistance = Double.MAX_VALUE;
@@ -964,6 +978,14 @@ public class DrawlerClient implements ClientModInitializer {
      */
     public static void send_translatable(String message, Object... args){
         MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.translatable(message.replace('&','§'),args)));
+    }
+
+    /**
+     * prints message to console
+     * @param message message that you want to print
+     */
+    public static void debug(String message) {
+        if (isDebug) Drawler.LOGGER.info(message);
     }
 }
 

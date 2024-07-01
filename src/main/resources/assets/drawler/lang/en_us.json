@@ -26,6 +26,7 @@
   "settings.tooltip.drawing_mode": "Decides how drawing will go",
   "settings.drawing_mode.1": "Left to right, top to bottom",
   "settings.drawing_mode.2": "Random",
+  "settings.drawing_mode.3": "Least popular color to most popular",
   "settings.option.rendering": "Rendering",
   "settings.tooltip.rendering":"If you turn this on, you will see preview of your picture in your left upper corner of the screen",
   "settings.option.depth": "Depth",
@@ -34,13 +35,16 @@
   "settings.tooltip.height": "Decides how far up image will render\nDO NOT CHANGE!",
   "settings.option.sideoff": "side offset",
   "settings.tooltip.sideoff": "Decides how far sideways image will render\nDO NOT CHANGE!",
-  "settings.option.after": "Useful button",
+  "settings.option.after": "After button",
   "settings.tooltip.after": "Toggles some lines of code, just don't touch it\nDO NOT CHANGE!",
-
-
+  "settings.option.debug": "Debug button",
+  "settings.tooltip.debug": "Toggles debug messages in console\nDO NOT CHANGE!",
 
   "drawing.messages.missing": "%d is not found, please take this item to inventory to continue. Drawing is now paused.",
   "drawing.messages.id_missing": "map ID is not correct, map not found.",
-  "drawing.messages.error": "Error. Please do not do what you did anymore."
-
+  "drawing.messages.error": "Error. Please do not do what you did anymore.",
+  "drawing.messages.done": "Done!..",
+  "drawing.messages.no_direction": "You have to look to some direction,",
+  "drawing.messages.processing_image": "Processing image, please wait...",
+  "drawing.messages.start_checking": "Starting error check..."
 }
