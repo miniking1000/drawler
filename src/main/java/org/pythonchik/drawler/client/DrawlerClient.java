@@ -76,14 +76,12 @@ public class DrawlerClient implements ClientModInitializer {
     static boolean needtocorrect = true;
     static boolean iscorrectin = false;
     static ArrayList<ArrayList<Integer>> tocorrect = new ArrayList<>();
-    static int oneback = 3;
     static int delay = 250;
     static int curIND = 0;
     static ScheduledFuture backup = null;
     static HashMap<Item,Integer> ItemMap;
     private static KeyBinding openMenuKeyBinding;
     private static KeyBinding pauseKeyBinding;
-    private static KeyBinding gobackKeyBinding;
     private static KeyBinding renderKeyBinding;
     private static final Identifier MAP_CHKRBRD =
             Identifier.of("minecraft:textures/map/map_background.png");
@@ -100,12 +98,6 @@ public class DrawlerClient implements ClientModInitializer {
                 "key.drawler.pause",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_1,
-                "category.drawler.modsettings"
-        ));
-        gobackKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.drawler.goback",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_3,
                 "category.drawler.modsettings"
         ));
         renderKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -297,7 +289,6 @@ public class DrawlerClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKeyBinding.wasPressed()) {
-                //MinecraftClient.getInstance().setScreen(new DrawlerScreen());
                 MinecraftClient.getInstance().setScreen(DrawlerSettings.create(MinecraftClient.getInstance().currentScreen));
             }
             while (pauseKeyBinding.wasPressed()){
@@ -308,20 +299,23 @@ public class DrawlerClient implements ClientModInitializer {
                 isdrawin = !isdrawin;
                 if (isdrawin) {
                     send_message("Продолжаем рисовать с точки &a%d".formatted(curIND));
+                    MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+                    int timeMS = 0;
+                    for (int y = 0; y < 128; y++) {
+                        for (int x = 0; x < 128; x++) {
+                            if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                                    ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
+                                Color color = new Color(todrawimg.getRGB(x, y));
+                                timeMS += delay * (DrawlerConfig.getColorVariant(color) == 1 ? 2 : DrawlerConfig.getColorVariant(color) == 3 ? 5 : 4);
+                            }
+                        }
+                    }
+                    send_message("Осталось рисовать примерно &c%dМС".formatted(timeMS));
                     gonext();
                 } else {
                     send_message("Останавливаемся на точке &a%d".formatted(curIND));
                 }
 
-            }
-            while (gobackKeyBinding.wasPressed()) {
-                int togo = oneback;
-                while (curIND - togo < 0) { //если Х меньше чем надо пройти
-                    togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
-                    curIND =127*127; //ставим его на максимум прошлого ряда
-                }
-                curIND -=togo; //если же мы можем вычесть, то просто вычитаем
-                send_message(String.format("Теперь текущая точка -> &a%d",curIND));
             }
             while (renderKeyBinding.wasPressed()) {
                 worldrender = !worldrender;
@@ -466,8 +460,10 @@ public class DrawlerClient implements ClientModInitializer {
                     }
                 }
             }
-            if (tocorrect.size() == 0){
+            if (tocorrect.isEmpty()){
                 send_message("Ошибок не выявлено! картина готова!");
+                isdrawin = false;
+                iscorrectin = false;
                 //TODO save pick if you said so in config
                 //TODO continued drawing in queue
             } else {
@@ -568,7 +564,7 @@ public class DrawlerClient implements ClientModInitializer {
                     temp.remove(ind);
                 }
             }
-            /*
+
             else if (drawing_mode == 2) {
                 ArrayList<ArrayList<Integer>> temp = new ArrayList<>();
                 ArrayList<Integer> temp2;
@@ -581,8 +577,16 @@ public class DrawlerClient implements ClientModInitializer {
                         temp2.add(DrawlerConfig.getColorVariant(new Color(resizedImage.getRGB(x,y))));
                         temp.add(temp2);
                         //x cords y cords Cid, Cvr
+                        //[[x,y,id,vr],[x,y,id,vr]...]
+                      //[[0,0,1,1],[0,1,1,1],[0,2,1,0]
+                       //[1,0,1,1],[1,1,1,0],[1,2,2,0]
+                       //[2,0,3,1],[2,1,3,0],[2,2,3,0]]
+                        // ->
+                        //[1,2,2,0],[2,0,3,1],[2,1,3,0],[2,2,3,0],[1,1,1,0],[0,2,1,0],[0,0,1,1],[0,1,1,1],[1,0,1,1]]
                     }
                 }
+
+                /*
                 while (temp.size() != 0) {
                     int lowest = 16384 + 1;
                     Color key = null;
@@ -611,9 +615,9 @@ public class DrawlerClient implements ClientModInitializer {
                     ColorMap.remove(key);
                     Drawler.LOGGER.info("color map removed, here is current: " + ColorMap);
                 }
+                */
 
             }
-            */
             else { //TODO add more drawing modes
                 send_message("Error: Invalid drawing mode value.");
                 return;
@@ -749,7 +753,7 @@ public class DrawlerClient implements ClientModInitializer {
         ScheduledExecutorService serv = Executors.newScheduledThreadPool(1);
         backup = serv.schedule(() -> {
             Drawler.LOGGER.info("backup message, what's going on???");
-            int togo = oneback;
+            int togo = 2;
             while (curIND - togo < 0) { //если Х меньше чем надо пройти
                 togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
                 curIND =127*127; //ставим его на максимум прошлого ряда
@@ -779,7 +783,7 @@ public class DrawlerClient implements ClientModInitializer {
             return;
         }
 
-        if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)){
+        if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)) {
             if (Cvr == 2) send_translatable("drawing.messages.missing",Text.translatable(Items.FEATHER.getTranslationKey()));
             else send_translatable("drawing.messages.missing",Text.translatable(Items.COAL.getTranslationKey()));
             isdrawin = false;
@@ -854,7 +858,7 @@ public class DrawlerClient implements ClientModInitializer {
                                 serv.shutdown();
                                 if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
                                         ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
-                                    int togo = oneback;
+                                    int togo = 3;
                                     while (curIND - togo < 0) { //если Х меньше чем надо пройти
                                         togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
                                         curIND =127*127; //ставим его на максимум прошлого ряда
@@ -872,7 +876,7 @@ public class DrawlerClient implements ClientModInitializer {
                                     serv.shutdown();
                                     if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
                                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
-                                        int togo = oneback;
+                                        int togo = 3;
                                         while (curIND - togo < 0) { //если Х меньше чем надо пройти
                                             togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
                                             curIND =127*127; //ставим его на максимум прошлого ряда
@@ -890,7 +894,7 @@ public class DrawlerClient implements ClientModInitializer {
                                     serv.shutdown();
                                     if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
                                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
-                                        int togo = oneback;
+                                        int togo = 3;
                                         while (curIND - togo < 0) { //если Х меньше чем надо пройти
                                             togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
                                             curIND =127*127; //ставим его на максимум прошлого ряда
@@ -902,7 +906,6 @@ public class DrawlerClient implements ClientModInitializer {
                                 }, delay, TimeUnit.MILLISECONDS);
                                 service4.shutdown();
                             }
-
                         }
                     },delay,TimeUnit.MILLISECONDS);
                     service.shutdown();

@@ -6,14 +6,10 @@ import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.Yaml;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
-import me.shedaniel.clothconfig2.impl.builders.DropdownMenuBuilder;
-import me.shedaniel.clothconfig2.impl.builders.EnumSelectorBuilder;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.pythonchik.drawler.Drawler;
-import org.pythonchik.drawler.DrawlerConfig;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +27,6 @@ public class DrawlerSettings {
         Map<String,Object> data = new HashMap<>();
         data.put("scale",DrawlerClient.scale);
         data.put("delay",DrawlerClient.delay);
-        data.put("oneback",DrawlerClient.oneback);
         data.put("mode34",DrawlerClient.mode34);
         data.put("needtocorrect",DrawlerClient.needtocorrect);
         data.put("correction_mode",DrawlerClient.correction_mode);
@@ -60,7 +55,6 @@ public class DrawlerSettings {
 
             DrawlerClient.scale = ((Number) data.getOrDefault("scale", 1)).floatValue();
             DrawlerClient.delay = (Integer) data.getOrDefault("delay", 200);
-            DrawlerClient.oneback = (Integer) data.getOrDefault("oneback", 3);
             DrawlerClient.mode34 = (Boolean) data.getOrDefault("mode34", true);
             DrawlerClient.needtocorrect = (Boolean) data.getOrDefault("needtocorrect", true);
             DrawlerClient.correction_mode = (Integer) data.getOrDefault("correction_mode",0);
@@ -125,13 +119,6 @@ public class DrawlerSettings {
                 .setDefaultValue(200)
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.delay","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.delay = newValue)
-                .build());
-
-        //BACK
-        drawing.addEntry(entryBuilder.startIntField(Text.translatableWithFallback("settings.option.oneback","check your localization file"), DrawlerClient.oneback)
-                .setDefaultValue(3)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.oneback","check your localization file"))
-                .setSaveConsumer(newValue -> DrawlerClient.oneback = newValue)
                 .build());
 
         //rule 34
