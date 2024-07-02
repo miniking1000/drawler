@@ -920,6 +920,8 @@ public class DrawlerClient implements ClientModInitializer {
                             service4.schedule(() -> {
                                 backup.cancel(true);
                                 serv.shutdown();
+
+                                /*
                                 if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
                                         ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
                                     int togo = 3;
@@ -930,6 +932,7 @@ public class DrawlerClient implements ClientModInitializer {
                                     curIND -=togo; //если же мы можем вычесть, то просто вычитаем
                                     debug("now was an else, redrawing???");
                                 }
+                                 */
                                 debug("going next");
                                 gonext();
                             }, delay* 3L, TimeUnit.MILLISECONDS);
@@ -940,6 +943,8 @@ public class DrawlerClient implements ClientModInitializer {
                                 service4.schedule(() -> {
                                     backup.cancel(true);
                                     serv.shutdown();
+
+                                    /*
                                     if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
                                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
                                         int togo = 3;
@@ -950,6 +955,8 @@ public class DrawlerClient implements ClientModInitializer {
                                         curIND -=togo; //если же мы можем вычесть, то просто вычитаем
                                         debug("now was an else, redrawing???");
                                     }
+                                     */
+
                                     debug("going next");
                                     gonext();
                                 }, delay* 4L, TimeUnit.MILLISECONDS);
@@ -960,6 +967,8 @@ public class DrawlerClient implements ClientModInitializer {
                                 service4.schedule(() -> {
                                     backup.cancel(true);
                                     serv.shutdown();
+
+                                    /*
                                     if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
                                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
                                         int togo = 3;
@@ -967,9 +976,11 @@ public class DrawlerClient implements ClientModInitializer {
                                             togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
                                             curIND =127*127; //ставим его на максимум прошлого ряда
                                         }
-                                        curIND -=togo; //если же мы можем вычесть, то просто вычитаем
+                                        curIND -= togo; //если же мы можем вычесть, то просто вычитаем
                                         debug("now was an else, redrawing???");
                                     }
+                                     */
+
                                     debug("going next");
                                     gonext();
                                 }, delay, TimeUnit.MILLISECONDS);
