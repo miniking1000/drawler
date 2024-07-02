@@ -6,7 +6,6 @@ import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.Yaml;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -68,7 +67,7 @@ public class DrawlerSettings {
 
 
     public static void phrase_mode() {
-        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString()};
+        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString()};
 
         if (DrawlerClient.drawing_string.equals(modes[0])) {
             DrawlerClient.drawing_mode = 0;
@@ -76,6 +75,8 @@ public class DrawlerSettings {
             DrawlerClient.drawing_mode = 1;
         } else if (DrawlerClient.drawing_string.equals(modes[2])) {
             DrawlerClient.drawing_mode = 2;
+        } else if (DrawlerClient.drawing_string.equals(modes[3])) {
+            DrawlerClient.drawing_mode = 3;
         }
         if (DrawlerClient.correction_string.equals(modes[0])) {
             DrawlerClient.correction_mode = 0;
@@ -139,7 +140,7 @@ public class DrawlerSettings {
                 .setSaveConsumer(newValue -> DrawlerClient.needtocorrect = newValue)
                 .build());
 
-        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString()}; //change this to number of modes
+        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString()}; //change this to number of modes
         String[] Cmodes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()}; //change this to number of modes
 
         drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.drawing_mode","check your localization file"),modes[DrawlerClient.drawing_mode])
