@@ -460,8 +460,8 @@ public class DrawlerClient implements ClientModInitializer {
                 for (int x = 0; x < 128; x++) {
                     if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
-                        tocorrect.add(new ArrayList<>(List.of(x, y)));
                         Color color = new Color(todrawimg.getRGB(x, y));
+                        tocorrect.add(new ArrayList<>(List.of(x, y,DrawlerConfig.getColorID(color),DrawlerConfig.getColorVariant(color))));
                         timeMS += delay * (DrawlerConfig.getColorVariant(color) == 1 ? 2 : DrawlerConfig.getColorVariant(color) == 3 ? 5 : 4);
                         iscorrectin = true;
                         isdrawin = true;
@@ -736,7 +736,7 @@ public class DrawlerClient implements ClientModInitializer {
                         send_message("Неверное значение режима исправление. очень странно...");
                         return;
                     }
-                    draw(tocorrect.get(ind).get(0), tocorrect.get(ind).get(1));
+                    draw(tocorrect.get(ind));
                     tocorrect.remove(ind);
                 } else {
                     send_message("Работа над ошибками завершена");
@@ -778,7 +778,7 @@ public class DrawlerClient implements ClientModInitializer {
                         }
                     }
                     debug("drawing from gonext, curind + pixeldata: " + curIND + " " + pixeldata.get(curIND));
-                    draw(x, y);
+                    draw(pixeldata.get(curIND));
                     curIND+=1;
                 } else {
                     send_message("пиксели закончились, или индекс слишком большой");
@@ -790,7 +790,7 @@ public class DrawlerClient implements ClientModInitializer {
         }
     }
 
-    private static void draw(int x, int y) {
+    private static void draw(ArrayList<Integer> data) {
         long start_time = System.currentTimeMillis();
         PlayerEntity player = MinecraftClient.getInstance().player;
         if (MinecraftClient.getInstance().world == null) return;
@@ -814,8 +814,13 @@ public class DrawlerClient implements ClientModInitializer {
             DrawlerClient.gonext();
         }, delay*20L, TimeUnit.MILLISECONDS);
         serv.shutdown();
-        int Cid = pixeldata.get(curIND).get(2); //pixeldata = x,y,Cid,Cvr
-        int Cvr = pixeldata.get(curIND).get(3);
+
+        //(pixel)data = x,y,Cid,Cvr
+        int x = data.get(0);
+        int y = data.get(1);
+        int Cid = data.get(2);
+        int Cvr = data.get(3);
+
         debug(Cid + " " + Cvr);
 
         //checking if color's the same as should be, then gonext();
@@ -866,7 +871,7 @@ public class DrawlerClient implements ClientModInitializer {
 
                 ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
                 debug(list.getKey() + " " + list.getValue() + " " + Cid + " " + Cvr + " " + key_point(start_time) + " - before delays");
-                debug(pixeldata.get(curIND) + " - pixel data(curIND)");
+                debug(data + " - (pixel)data(of curIND or tocorrect(ind))");
                 service.schedule(() -> {
                     MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
                     //debug(key_point(start_time) + " - I just painted");
