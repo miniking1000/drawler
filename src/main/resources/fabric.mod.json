@@ -19,6 +19,9 @@
       "org.pythonchik.drawler.Drawler"
     ]
   },
+  "mixins": [
+    "drawler.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",

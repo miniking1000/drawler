@@ -63,7 +63,7 @@ public class DrawlerClient implements ClientModInitializer {
     //static int curx = 0;
     //static int curz = 0;
     static int mapid = -1;
-    static boolean needtorender = false;
+    static int highlightColor = 0x80FF0000;
     static int correction_mode = 0;
     //0 = default, from left to right, up to down...
     //1 = random, just random.
@@ -75,6 +75,8 @@ public class DrawlerClient implements ClientModInitializer {
     static String correction_string = "";
     static ArrayList<ArrayList<Integer>> pixeldata = new ArrayList<>();
     static boolean mode34 = true;
+    static boolean needtorender = false;
+    static boolean needtohighlight = true;
     static boolean needtocorrect = true;
     static boolean iscorrectin = false;
     static ArrayList<ArrayList<Integer>> tocorrect = new ArrayList<>();
@@ -82,11 +84,11 @@ public class DrawlerClient implements ClientModInitializer {
     static int curIND = 0;
     static ScheduledFuture backup = null;
     static HashMap<Item,Integer> ItemMap;
+    static ArrayList<Item> RenderingItems;
     private static KeyBinding openMenuKeyBinding;
     private static KeyBinding pauseKeyBinding;
     private static KeyBinding renderKeyBinding;
-    private static final Identifier MAP_CHKRBRD =
-            Identifier.of("minecraft:textures/map/map_background.png");
+    private static final Identifier MAP_CHKRBRD = Identifier.of("minecraft:textures/map/map_background.png");
 
     @Override
     public void onInitializeClient() {
@@ -124,6 +126,8 @@ public class DrawlerClient implements ClientModInitializer {
                         iscorrectin = false;
                         isthere = false;
                         todrawimg = null;
+                        RenderingItems = null;
+                        ItemMap = null;
                         tocorrect = new ArrayList<>();
                         ItemMap = new HashMap<>();
                         current = new HashMap<>();
@@ -138,6 +142,7 @@ public class DrawlerClient implements ClientModInitializer {
                                 if (todrawimg != null) {
                                     send_message("Вам не хватает этих предметов:");
                                     check_item();
+                                    updateRender();
                                 } else {
                                     send_message("Никакое изображение сейчас не рисуется");
                                 }
@@ -283,8 +288,6 @@ public class DrawlerClient implements ClientModInitializer {
                                         send_translatable("drawing.messages.processing_image");
                                         mapid = IntegerArgumentType.getInteger(context, "mapID");
                                         url = StringArgumentType.getString(context, "url");
-                                        iscorrectin = false;
-                                        tocorrect = new ArrayList<>();
                                         ScheduledExecutorService backup = Executors.newScheduledThreadPool(1);
                                         backup.schedule(() -> {
                                             processImage(url);
@@ -352,7 +355,6 @@ public class DrawlerClient implements ClientModInitializer {
                     }
                 }
                 drawContext.drawTexture(Identifier.of("drawler","urlimg.png"), (int) (3+3*scale), (int) (3+3*scale),0, 1F, 1F, (int) (86*scale),(int) (86*scale),(int) (86*scale)+1,(int) (86*scale)+1);
-
             }
         }); //end of hudRenderer
 
@@ -449,7 +451,6 @@ public class DrawlerClient implements ClientModInitializer {
     } //end of client init
 
 
-
     public static void check_errors(){
         send_translatable("drawing.messages.start_checking");
         tocorrect = new ArrayList<>();
@@ -486,7 +487,7 @@ public class DrawlerClient implements ClientModInitializer {
     public static void processImage(String url) {
         try {
             BufferedImage originalImage = ImageIO.read(new URL(url));
-            BufferedImage resizedImage = resizeImage(originalImage, 128, 128); //TODO this line will break 2x1 picks, rework that
+            BufferedImage resizedImage = resizeImage(originalImage, 128, 128);
 
             ClientPlayerEntity player = MinecraftClient.getInstance().player;
             debug(player.getHorizontalFacing().toString());
@@ -499,10 +500,11 @@ public class DrawlerClient implements ClientModInitializer {
                     send_translatable("drawing.messages.no_direction");
                     return;
                 }
-            }
+            } //choosing correct angles
 
             HashMap<Color,Integer> ColorMap;
             ArrayList<Color> colors = new ArrayList<>();
+
             for (Color color : DrawlerConfig.colors){
                 colors.add(new Color(color.getRGB())); //creating local list of colors
             }
@@ -535,7 +537,7 @@ public class DrawlerClient implements ClientModInitializer {
                 }
             } while (mode34 && ItemMap.size() > 34);
 
-            ItemMap.put(Items.COAL,1);
+            ItemMap.put(Items.COAL,1); //TODO don't assume that you need this, and check if there are 1 and 0 or 3 variants in the painting
             ItemMap.put(Items.FEATHER,1);
 
             pixeldata = getPixeldata(resizedImage);
@@ -553,6 +555,9 @@ public class DrawlerClient implements ClientModInitializer {
             isthere = true;
             todrawimg = resizedImage;
             isdrawin = false;
+            iscorrectin = false;
+            tocorrect = new ArrayList<>();
+            updateRender();
             if (bacK_check_item()) {
                 send_message("Предметы, которые нужно собрать:");
                 check_item();
@@ -697,30 +702,91 @@ public class DrawlerClient implements ClientModInitializer {
             send_message("Список ресурсов пустой, вы ничего не рисуете...");
             return false;
         }
-        for (Item i : ItemMap.keySet()){
-            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(i))){
+        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        if (mapState != null) {
+            for (int y = 0; y < 128; y++) {
+                for (int x = 0; x < 128; x++) {
+                    if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y))))))
+                            && !MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(DrawlerConfig.items.get(DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y))))))) {
+                        return true;
+                    }
+                }
+            }
+            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(Items.COAL))){
+                send_translatable(Items.COAL.getTranslationKey());
                 return true;
             }
+            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(Items.FEATHER))){
+                send_translatable(Items.FEATHER.getTranslationKey());
+                return true;
+            }
+        } else {
+            send_message("С картой какая-то ошибка.");
         }
         return false;
     }
+
     private static void check_item(){
         boolean temp = false;
         if (ItemMap.isEmpty()){
             send_message("Список ресурсов пустой, вы ничего не рисуете...");
             return;
         }
-        for (Item i : ItemMap.keySet()){
-            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(i))){
-                send_translatable(i.getTranslationKey());
+        ArrayList<Item> seen = new ArrayList<>();
+        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        if (mapState != null) {
+            for (int y = 0; y < 128; y++) {
+                for (int x = 0; x < 128; x++) {
+                    if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y))))))
+                            && !MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(DrawlerConfig.items.get(DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y))))))) {
+                        Color color = new Color(todrawimg.getRGB(x, y));
+                        if (!seen.contains(DrawlerConfig.items.get(DrawlerConfig.getColorID(color)))) {
+                            seen.add(DrawlerConfig.items.get(DrawlerConfig.getColorID(color)));
+                            send_translatable(seen.getLast().getTranslationKey());
+                            temp = true;
+                        }
+                    }
+                }
+            }
+            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(Items.COAL))){
+                send_translatable(Items.COAL.getTranslationKey());
                 temp = true;
             }
+            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(Items.FEATHER))){
+                send_translatable(Items.FEATHER.getTranslationKey());
+                temp = true;
+            }
+        } else {
+            send_message("С картой какая-то ошибка.");
         }
         if (!temp){
             send_message("Все ресурсы были уже собраны!");
         }
     }
 
+    private static void updateRender() {
+        RenderingItems = new ArrayList<>(List.of(Items.COAL,Items.FEATHER));
+        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        if (mapState != null) {
+            for (int y = 0; y < 128; y++) {
+                for (int x = 0; x < 128; x++) {
+                    if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
+                        Color color = new Color(todrawimg.getRGB(x, y));
+                        RenderingItems.add(DrawlerConfig.items.get(DrawlerConfig.getColorID(color)));
+                    }
+                }
+            }
+            if (RenderingItems.size() == 2){
+                RenderingItems = new ArrayList<>();
+            }
+        } else {
+            send_message("С картой какая-то ошибка.");
+            RenderingItems = new ArrayList<>();
+        }
+    }
 
     public static void gonext(){
         if (isdrawin) {
@@ -846,7 +912,7 @@ public class DrawlerClient implements ClientModInitializer {
             return;
         }
 
-        // check if we missing coal of feather
+        // check if we are missing coal of feather
         if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)) {
             if (Cvr == 2) send_translatable("drawing.messages.missing",Text.translatable(Items.FEATHER.getTranslationKey()));
             else send_translatable("drawing.messages.missing",Text.translatable(Items.COAL.getTranslationKey()));
@@ -938,6 +1004,8 @@ public class DrawlerClient implements ClientModInitializer {
                                     debug("now was an else, redrawing???");
                                 }
                                  */
+                                debug("updating render");
+                                updateRender();
                                 debug("going next");
                                 gonext();
                             }, delay* 3L, TimeUnit.MILLISECONDS);
@@ -961,7 +1029,8 @@ public class DrawlerClient implements ClientModInitializer {
                                         debug("now was an else, redrawing???");
                                     }
                                      */
-
+                                    debug("updating render");
+                                    updateRender();
                                     debug("going next");
                                     gonext();
                                 }, delay* 4L, TimeUnit.MILLISECONDS);
@@ -986,6 +1055,8 @@ public class DrawlerClient implements ClientModInitializer {
                                     }
                                      */
 
+                                    debug("updating render");
+                                    updateRender();
                                     debug("going next");
                                     gonext();
                                 }, delay, TimeUnit.MILLISECONDS);
@@ -999,7 +1070,33 @@ public class DrawlerClient implements ClientModInitializer {
             }
     }
 
+
     //tech functions (they all probably won't break)
+
+    /**
+     * Color, witch we should highlight slots with
+     * @return hightlightColor field
+     */
+    public static int getHighlightColor() {
+        return highlightColor;
+    }
+
+    /**
+     * weather we should highlight slots or not
+     * @return needtohightlight field
+     */
+    public static boolean isHightlighting(){
+        return needtohighlight;
+    }
+
+    /**
+     * RenderingItems field as an ArrayList
+     * @return an ArrayList of Item 's that we should highlight
+     */
+    public static ArrayList<Item> getItemsList(){
+        if (RenderingItems == null) return null;
+        return RenderingItems;
+    }
 
     /**
      * returns how much time (in MS) passed since time

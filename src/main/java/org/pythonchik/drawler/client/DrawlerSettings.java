@@ -31,6 +31,8 @@ public class DrawlerSettings {
         data.put("correction_mode",DrawlerClient.correction_mode);
         data.put("drawing_mode",DrawlerClient.drawing_mode);
         data.put("idDev",DrawlerClient.isDev);
+        data.put("needtohighlight",DrawlerClient.needtohighlight);
+        data.put("highlightcolor",DrawlerClient.highlightColor);
 
 
         //add line here to save value
@@ -60,6 +62,8 @@ public class DrawlerSettings {
             DrawlerClient.correction_mode = (Integer) data.getOrDefault("correction_mode",0);
             DrawlerClient.drawing_mode = (Integer) data.getOrDefault("drawing_mode",0);
             DrawlerClient.isDev = (Boolean) data.getOrDefault("idDev",false);
+            DrawlerClient.needtohighlight = (Boolean) data.getOrDefault("needtohighlight",true);
+            DrawlerClient.highlightColor = (Integer) data.getOrDefault("highlightcolor",0x80FF0000);
             //add line here to load value
 
         } catch (Exception ignored) {}
@@ -105,9 +109,25 @@ public class DrawlerSettings {
 
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 
+
+        //highlighting toggle
+        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.highlighting","check your localization file"), DrawlerClient.needtohighlight)
+                .setDefaultValue(true)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.highlighting","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.needtohighlight = newValue)
+                .build());
+
+        //highlighting color
+        general.addEntry(entryBuilder.startAlphaColorField(Text.translatableWithFallback("settings.option.highlighting_color","check your localization file"), DrawlerClient.highlightColor)
+                .setDefaultValue(0x80FF0000)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.highlighting_color","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.highlightColor = newValue)
+                .build());
+
+
         //rendering
         general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.rendering","check your localization file"), DrawlerClient.needtorender)
-                .setDefaultValue(true)
+                .setDefaultValue(false)
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.rendering","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.needtorender = newValue)
                 .build());

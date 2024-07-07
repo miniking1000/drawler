@@ -30,6 +30,10 @@
   "settings.drawing_mode.4": "Most popular color to least popular",
   "settings.option.rendering": "Rendering",
   "settings.tooltip.rendering":"If you turn this on, you will see preview of your picture in your left upper corner of the screen",
+  "settings.option.highlighting": "Highlighting",
+  "settings.tooltip.highlighting":"If you turn this on, items, needed for drawing will be highlighted",
+  "settings.option.highlighting_color": "Highlighting color",
+  "settings.tooltip.highlighting_color":"Color, in which items will be highlighted. (If highlighting is on)",
   "settings.option.depth": "Depth",
   "settings.tooltip.depth": "Decides how far image will render\nDO NOT CHANGE!",
   "settings.option.height": "Height",
@@ -47,5 +51,6 @@
   "drawing.messages.done": "Done!..",
   "drawing.messages.no_direction": "You have to look to some direction,",
   "drawing.messages.processing_image": "Processing image, please wait...",
-  "drawing.messages.start_checking": "Starting error check..."
+  "drawing.messages.start_checking": "Starting error check...",
+  "drawing.messages.resources_collected": "Resources are already found"
 }
