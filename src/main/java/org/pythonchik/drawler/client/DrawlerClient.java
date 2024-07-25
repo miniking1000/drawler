@@ -313,10 +313,26 @@ public class DrawlerClient implements ClientModInitializer {
                     int timeMS = 0;
                     for (int y = 0; y < 128; y++) {
                         for (int x = 0; x < 128; x++) {
-                            if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
-                                    ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
+                            int Cid = DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)));
+                            int Cvr = DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)));
+                            if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid) &&
+                                    ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == Cvr))) {
                                 Color color = new Color(todrawimg.getRGB(x, y));
-                                timeMS += delay * (DrawlerConfig.getColorVariant(color) == 1 ? 2 : DrawlerConfig.getColorVariant(color) == 3 ? 5 : 4);
+                                if (!(MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid)) {
+                                    timeMS += delay * (DrawlerConfig.getColorVariant(color) == 1 ? 2 : DrawlerConfig.getColorVariant(color) == 3 ? 5 : 4);
+                                    continue;
+                                }
+                                // base color is correct:
+                                int CCvr = (Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4);
+                                if (CCvr == 1) {
+                                    timeMS += delay * ((Cvr == 2 || Cvr == 0) ? 3 : 4);
+                                } else if (CCvr == 0) {
+                                    timeMS += delay * ((Cvr == 3 || Cvr == 1) ? 3 : 4);
+                                } else if (CCvr == 2) {
+                                    timeMS += delay * (Cvr == 1 ? 3 : Cvr == 0 ? 4 : 5);
+                                } else {
+                                    timeMS += delay * (Cvr == 0 ? 3 : Cvr == 1 ? 4 : 5);
+                                }
                             }
                         }
                     }
@@ -325,8 +341,8 @@ public class DrawlerClient implements ClientModInitializer {
                 } else {
                     send_message("Останавливаемся на точке &a%d".formatted(curIND));
                 }
-
             }
+
             while (renderKeyBinding.wasPressed()) {
                 worldrender = !worldrender;
                 send_message("Готово! :(");
@@ -451,10 +467,11 @@ public class DrawlerClient implements ClientModInitializer {
     } //end of client init
 
 
-    public static void check_errors(){
+    public static void check_errors() {
         send_translatable("drawing.messages.start_checking");
         tocorrect = new ArrayList<>();
         MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        isdrawin = false;
         int timeMS = 0;
         if (mapState != null) {
             for (int y = 0; y < 128; y++) {
@@ -465,13 +482,11 @@ public class DrawlerClient implements ClientModInitializer {
                         tocorrect.add(new ArrayList<>(List.of(x, y,DrawlerConfig.getColorID(color),DrawlerConfig.getColorVariant(color))));
                         timeMS += delay * (DrawlerConfig.getColorVariant(color) == 1 ? 2 : DrawlerConfig.getColorVariant(color) == 3 ? 5 : 4);
                         iscorrectin = true;
-                        isdrawin = true;
                     }
                 }
             }
             if (tocorrect.isEmpty()){
                 send_message("Ошибок не выявлено! картина готова!");
-                isdrawin = false;
                 iscorrectin = false;
                 //TODO save pick if you said so in config
                 //TODO continued drawing in queue
@@ -811,7 +826,7 @@ public class DrawlerClient implements ClientModInitializer {
                     check_errors();
                 }
             } else {
-                if (pixeldata.size() > curIND) {
+                if (pixeldata.size() > curIND && curIND >= 0) {
                     int x = pixeldata.get(curIND).get(0);
                     int y = pixeldata.get(curIND).get(1);
                     int Cid = pixeldata.get(curIND).get(2);
@@ -830,11 +845,12 @@ public class DrawlerClient implements ClientModInitializer {
                     while (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid) &&
                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == Cvr))) {
                         curIND += 1;
-                        if (!(pixeldata.size() > curIND)) {
+                        if (!(pixeldata.size() > curIND && curIND >= 0)) {
                             send_message("пиксели закончились, или индекс слишком большой");
                             isdrawin = false;
                             curIND = 0;
                             if (needtocorrect) check_errors();
+                            break;
                         } else {
                             x = pixeldata.get(curIND).get(0);
                             y = pixeldata.get(curIND).get(1);
@@ -887,41 +903,18 @@ public class DrawlerClient implements ClientModInitializer {
         int Cid = data.get(2);
         int Cvr = data.get(3);
 
-        debug(Cid + " " + Cvr);
+        debug(x + " " + y + " " + Cid + " " + Cvr);
 
         //checking if color's the same as should be, then gonext();
         if (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid) &&
                 ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == Cvr))) {
             backup.cancel(true);
             serv.shutdown();
-            curIND += 1;
+            curIND = 0;
             gonext();
             return;
         }
 
-        //taking item in hand, or returning, if we don't have it
-        Item ToFind = DrawlerConfig.items.get(Cid);
-        if (player.getInventory().contains(new ItemStack(ToFind))) {
-            swapItem(player.getInventory().indexOf(new ItemStack(ToFind)));
-        } else {
-            send_translatable("drawing.messages.missing",Text.translatable(ToFind.getTranslationKey()));
-            isdrawin = false;
-            curIND -= 1;
-            backup.cancel(true);
-            serv.shutdown();
-            return;
-        }
-
-        // check if we are missing coal of feather
-        if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)) {
-            if (Cvr == 2) send_translatable("drawing.messages.missing",Text.translatable(Items.FEATHER.getTranslationKey()));
-            else send_translatable("drawing.messages.missing",Text.translatable(Items.COAL.getTranslationKey()));
-            isdrawin = false;
-            curIND -= 1;
-            backup.cancel(true);
-            serv.shutdown();
-            return;
-        }
 
         ArrayList<Integer> temp = new ArrayList<>();
         temp.add(x);
@@ -934,63 +927,87 @@ public class DrawlerClient implements ClientModInitializer {
                 player.setPitch(degree.get(1));
                 player.getInventory().updateItems();
                 player.getInventory().markDirty();
+                if (!(MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid)) {
+                    //taking item in hand, or returning, if we don't have it
+                    Item ToFind = DrawlerConfig.items.get(Cid);
+                    if (player.getInventory().contains(new ItemStack(ToFind))) {
+                        swapItem(player.getInventory().indexOf(new ItemStack(ToFind)));
+                    } else {
+                        send_translatable("drawing.messages.missing", Text.translatable(ToFind.getTranslationKey()));
+                        isdrawin = false;
+                        curIND -= 1;
+                        backup.cancel(true);
+                        serv.shutdown();
+                        return;
+                    }
 
-                ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
-                debug(list.getKey() + " " + list.getValue() + " " + Cid + " " + Cvr + " " + key_point(start_time) + " - before delays");
-                debug(data + " - (pixel)data(of curIND or tocorrect(ind))");
-                service.schedule(() -> {
-                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
-                    //debug(key_point(start_time) + " - I just painted");
+                    // check if we are missing coal of feather
+                    if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)) {
+                        if (Cvr == 2)
+                            send_translatable("drawing.messages.missing", Text.translatable(Items.FEATHER.getTranslationKey()));
+                        else
+                            send_translatable("drawing.messages.missing", Text.translatable(Items.COAL.getTranslationKey()));
+                        isdrawin = false;
+                        curIND -= 1;
+                        backup.cancel(true);
+                        serv.shutdown();
+                        return;
+                    }
 
-                    {
-                        //taking items coal/feather
-                        if (Cvr == 2) { // feather 1
-                            ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
-                            service2.schedule(() -> {
-                                swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
-                                debug(key_point(start_time) + " - I just swapped to feather");
+                    ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
+                    debug(list.getKey() + " " + list.getValue() + " " + Cid + " " + Cvr + " " + key_point(start_time) + " - before delays");
+                    debug(data + " - (pixel)data(of curIND or tocorrect(ind))");
+                    service.schedule(() -> {
+                        MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                        //debug(key_point(start_time) + " - I just painted");
+
+                        {
+                            //taking items coal/feather
+                            if (Cvr == 2) { // feather 1
+                                ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
+                                service2.schedule(() -> {
+                                    swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
+                                    debug(key_point(start_time) + " - I just swapped to feather");
                                 }, delay, TimeUnit.MILLISECONDS);
-                            service2.shutdown();
-                        }
-                        else if (Cvr == 3 || Cvr == 0) { //coal 2
-                            ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
-                            service2.schedule(() -> {
-                                swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
-                                debug(key_point(start_time) + " - I just swapped to coal");
+                                service2.shutdown();
+                            } else if (Cvr == 3 || Cvr == 0) { //coal 2
+                                ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
+                                service2.schedule(() -> {
+                                    swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
+                                    debug(key_point(start_time) + " - I just swapped to coal");
                                 }, delay, TimeUnit.MILLISECONDS);
-                            service2.shutdown();
-                        }
+                                service2.shutdown();
+                            }
 
-                        //shading or lighting
-                        if (Cvr == 2 || Cvr == 0) { // feather/coal 1
-                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
-                            service3.schedule(() -> {
-                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
-                                debug(key_point(start_time) + " - I just painted with feather(1) or coal(1)");
-                                }, delay* 2L, TimeUnit.MILLISECONDS);
-                            service3.shutdown();
-                        }
-                        else if (Cvr == 3) { //coal 2
-                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
-                            service3.schedule(() -> {
-                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
-                                debug(key_point(start_time) + " - I just painted with coal(1/2)");
+                            //shading or lighting
+                            if (Cvr == 2 || Cvr == 0) { // feather/coal 1
+                                ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                                service3.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with feather(1) or coal(1)");
+                                }, delay * 2L, TimeUnit.MILLISECONDS);
+                                service3.shutdown();
+                            } else if (Cvr == 3) { //coal 2
+                                ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                                service3.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with coal(1/2)");
+                                    ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                    service4.schedule(() -> {
+                                        MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                        debug(key_point(start_time) + " - I just painted with coal(2/2)");
+                                    }, delay, TimeUnit.MILLISECONDS);
+                                    service4.shutdown();
+                                }, delay * 2L, TimeUnit.MILLISECONDS);
+                                service3.shutdown();
+                            }
+
+                            //going next
+                            if (Cvr == 2 || Cvr == 0) {  //feather/coal 1
                                 ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
                                 service4.schedule(() -> {
-                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult)MinecraftClient.getInstance().crosshairTarget).getEntity());
-                                    debug(key_point(start_time) + " - I just painted with coal(2/2)");
-                                    }, delay, TimeUnit.MILLISECONDS);
-                                service4.shutdown();
-                                }, delay* 2L, TimeUnit.MILLISECONDS);
-                            service3.shutdown();
-                        }
-
-                        //going next
-                        if (Cvr == 2 || Cvr == 0) {  //feather/coal 1
-                            ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
-                            service4.schedule(() -> {
-                                backup.cancel(true);
-                                serv.shutdown();
+                                    backup.cancel(true);
+                                    serv.shutdown();
 
                                 /*
                                 if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
@@ -1004,15 +1021,14 @@ public class DrawlerClient implements ClientModInitializer {
                                     debug("now was an else, redrawing???");
                                 }
                                  */
-                                debug("updating render");
-                                updateRender();
-                                debug("going next");
-                                gonext();
-                            }, delay* 3L, TimeUnit.MILLISECONDS);
-                            service4.shutdown();
-                        }
-                        else if (Cvr == 3) { //coal 2
-                            ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                    debug("updating render");
+                                    updateRender();
+                                    debug("going next");
+                                    gonext();
+                                }, delay * 3L, TimeUnit.MILLISECONDS);
+                                service4.shutdown();
+                            } else if (Cvr == 3) { //coal 2
+                                ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
                                 service4.schedule(() -> {
                                     backup.cancel(true);
                                     serv.shutdown();
@@ -1033,10 +1049,9 @@ public class DrawlerClient implements ClientModInitializer {
                                     updateRender();
                                     debug("going next");
                                     gonext();
-                                }, delay* 4L, TimeUnit.MILLISECONDS);
+                                }, delay * 4L, TimeUnit.MILLISECONDS);
                                 service4.shutdown();
-                            }
-                        else {
+                            } else {
                                 ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
                                 service4.schedule(() -> {
                                     backup.cancel(true);
@@ -1063,11 +1078,354 @@ public class DrawlerClient implements ClientModInitializer {
                                 service4.shutdown();
                             }
                         }
-                    },delay,TimeUnit.MILLISECONDS);
+                    }, delay, TimeUnit.MILLISECONDS);
                     service.shutdown();
-                    break;
+                } else {
+                    //base color is correct
+                    int CCvr = (Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4); //variant, that is on the map
+
+                    if (CCvr == 1) {
+
+                        if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)) {
+                            if (Cvr == 2)
+                                send_translatable("drawing.messages.missing", Text.translatable(Items.FEATHER.getTranslationKey()));
+                            else
+                                send_translatable("drawing.messages.missing", Text.translatable(Items.COAL.getTranslationKey()));
+                            isdrawin = false;
+                            curIND -= 1;
+                            backup.cancel(true);
+                            serv.shutdown();
+                            return;
+                        }
+
+                        debug(list.getKey() + " " + list.getValue() + " " + Cid + " " + Cvr + " " + key_point(start_time) + " - before delays");
+                        debug(data + " - (pixel)data(of curIND or tocorrect(ind))");
+                        debug("last 2 messages was from CCvr == 1, correct base, I'm just doing old stuff as we have a base here!");
+                        //taking items coal/feather
+                        if (Cvr == 2) { // feather 1
+                            ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
+                            service2.schedule(() -> {
+                                swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
+                                debug(key_point(start_time) + " - I just swapped to feather");
+                            }, delay, TimeUnit.MILLISECONDS);
+                            service2.shutdown();
+                        } else if (Cvr == 3 || Cvr == 0) { //coal 2
+                            ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
+                            service2.schedule(() -> {
+                                swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
+                                debug(key_point(start_time) + " - I just swapped to coal");
+                            }, delay, TimeUnit.MILLISECONDS);
+                            service2.shutdown();
+                        }
+
+                        //shading or lighting
+                        if (Cvr == 2 || Cvr == 0) { // feather/coal 1
+                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                            service3.schedule(() -> {
+                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                debug(key_point(start_time) + " - I just painted with feather(1) or coal(1)");
+                            }, delay * 2L, TimeUnit.MILLISECONDS);
+                            service3.shutdown();
+                        } else if (Cvr == 3) { //coal 2
+                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                            service3.schedule(() -> {
+                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                debug(key_point(start_time) + " - I just painted with coal(1/2)");
+                                ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                service4.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with coal(2/2)");
+                                }, delay, TimeUnit.MILLISECONDS);
+                                service4.shutdown();
+                            }, delay * 2L, TimeUnit.MILLISECONDS);
+                            service3.shutdown();
+                        }
+
+                        //going next
+                        {
+                            ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                            service4.schedule(() -> {
+                                backup.cancel(true);
+                                serv.shutdown();
+
+                                /*
+                                if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
+                                        ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
+                                    int togo = 3;
+                                    while (curIND - togo < 0) { //если Х меньше чем надо пройти
+                                        togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
+                                        curIND =127*127; //ставим его на максимум прошлого ряда
+                                    }
+                                    curIND -=togo; //если же мы можем вычесть, то просто вычитаем
+                                    debug("now was an else, redrawing???");
+                                }
+                                 */
+                                debug("updating render");
+                                updateRender();
+                                debug("going next");
+                                gonext();
+                            }, delay * ((Cvr == 2 || Cvr == 0) ? 3L : 4L), TimeUnit.MILLISECONDS);
+                            service4.shutdown();
+                        }
+
+                    } else if (CCvr == 0) {
+                        if (!(((Cvr == 2 || Cvr == 1) && player.getInventory().contains(new ItemStack(Items.FEATHER))) || (Cvr == 3 && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 0)) {
+                                if (Cvr == 2 || Cvr == 1)
+                                    send_translatable("drawing.messages.missing", Text.translatable(Items.FEATHER.getTranslationKey()));
+                                else
+                                    send_translatable("drawing.messages.missing", Text.translatable(Items.COAL.getTranslationKey()));
+                                isdrawin = false;
+                                curIND -= 1;
+                                backup.cancel(true);
+                                serv.shutdown();
+                                return;
+                            }
+
+                        //taking items coal/feather
+                        if (Cvr == 2 || Cvr == 1) { // feather 1 or 2
+                            ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
+                            service2.schedule(() -> {
+                                swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
+                                debug(key_point(start_time) + " - I just swapped to feather (CCvr == 0)");
+                            }, delay, TimeUnit.MILLISECONDS);
+                            service2.shutdown();
+                        } else if (Cvr == 3) { //coal 3
+                            ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
+                            service2.schedule(() -> {
+                                swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
+                                debug(key_point(start_time) + " - I just swapped to coal (CCvr == 0)");
+                            }, delay, TimeUnit.MILLISECONDS);
+                            service2.shutdown();
+                        }
+
+                        //shading or lighting
+                        if (Cvr == 3 || Cvr == 1) { // feather/coal 1
+                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                            service3.schedule(() -> {
+                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                debug(key_point(start_time) + " - I just painted with feather(1) or coal(1) CCvr == 0");
+                            }, delay * 2L, TimeUnit.MILLISECONDS);
+                            service3.shutdown();
+                        } else if (Cvr == 2) { //feather 2
+                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                            service3.schedule(() -> {
+                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                debug(key_point(start_time) + " - I just painted with feather(1/2) CCvr == 0");
+                                ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                service4.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with feather(2/2) CCvr == 0");
+                                }, delay, TimeUnit.MILLISECONDS);
+                                service4.shutdown();
+                            }, delay * 2L, TimeUnit.MILLISECONDS);
+                            service3.shutdown();
+                        }
+
+                        //going next
+                        {
+                            ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                            service4.schedule(() -> {
+                                backup.cancel(true);
+                                serv.shutdown();
+
+                            /*
+                                if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
+                                        ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
+                                    int togo = 3;
+                                    while (curIND - togo < 0) { //если Х меньше чем надо пройти
+                                        togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
+                                        curIND =127*127; //ставим его на максимум прошлого ряда
+                                    }
+                                    curIND -=togo; //если же мы можем вычесть, то просто вычитаем
+                                    debug("now was an else, redrawing???");
+                                }
+                                 */
+                                debug("updating render");
+                                updateRender();
+                                debug("going next");
+                                gonext();
+                            }, delay * ((Cvr == 3 || Cvr == 1) ? 3L : 4L), TimeUnit.MILLISECONDS);
+                            service4.shutdown();
+                        }
+
+                    } else if (CCvr == 2) {
+
+                        if (!(((Cvr == 0 || Cvr == 1 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 2)) {
+                                send_translatable("drawing.messages.missing", Text.translatable(Items.COAL.getTranslationKey()));
+                                isdrawin = false;
+                                curIND -= 1;
+                                backup.cancel(true);
+                                serv.shutdown();
+                                return;
+                            }
+
+                        //taking item coal
+                        ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
+                        service2.schedule(() -> {
+                            swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
+                            debug(key_point(start_time) + " - I just swapped to coal (CCvr == 2)");
+                        }, delay, TimeUnit.MILLISECONDS);
+                        service2.shutdown();
+
+                        //shading
+                        if (Cvr == 1) { // feather/coal 1
+                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                            service3.schedule(() -> {
+                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                debug(key_point(start_time) + " - I just painted with coal(1) CCvr == 2");
+                            }, delay * 2L, TimeUnit.MILLISECONDS);
+                            service3.shutdown();
+                        } else if (Cvr == 0) { //feather 2
+                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                            service3.schedule(() -> {
+                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                debug(key_point(start_time) + " - I just painted with feather(1/2) CCvr == 2");
+                                ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                service4.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with feather(2/2) CCvr == 2");
+                                }, delay, TimeUnit.MILLISECONDS);
+                                service4.shutdown();
+                            }, delay * 2L, TimeUnit.MILLISECONDS);
+                            service3.shutdown();
+                        } else if (Cvr == 3) {
+                            ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                            service3.schedule(() -> {
+                                MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                debug(key_point(start_time) + " - I just painted with feather(1/3) CCvr == 2");
+                                ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                service4.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with feather(2/3) CCvr == 2");
+                                }, delay, TimeUnit.MILLISECONDS);
+                                service4.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with feather(3/3) CCvr == 2");
+                                }, delay *2L, TimeUnit.MILLISECONDS);
+                                service4.shutdown();
+                            }, delay * 2L, TimeUnit.MILLISECONDS); //completed in 4
+                            service3.shutdown();
+                        }
+
+                        //going next
+                        {
+                            ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                            service4.schedule(() -> {
+                                backup.cancel(true);
+                                serv.shutdown();
+
+                                /*
+                                if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
+                                        ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
+                                    int togo = 3;
+                                    while (curIND - togo < 0) { //если Х меньше чем надо пройти
+                                        togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
+                                        curIND =127*127; //ставим его на максимум прошлого ряда
+                                    }
+                                    curIND -=togo; //если же мы можем вычесть, то просто вычитаем
+                                    debug("now was an else, redrawing???");
+                                }
+                                 */
+                                debug("updating render");
+                                updateRender();
+                                debug("going next");
+                                gonext();
+                            }, delay * (Cvr == 1 ? 3L : Cvr == 0 ? 4L : 5L), TimeUnit.MILLISECONDS);
+                            service4.shutdown();
+                            }
+
+                    } else {
+                        {
+                            if (!(((Cvr == 0 || Cvr == 1 || Cvr == 2) && player.getInventory().contains(new ItemStack(Items.FEATHER))) || Cvr == 3)) {
+                                send_translatable("drawing.messages.missing", Text.translatable(Items.FEATHER.getTranslationKey()));
+                                isdrawin = false;
+                                curIND -= 1;
+                                backup.cancel(true);
+                                serv.shutdown();
+                                return;
+                            }
+
+                            //taking item feather
+                            ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
+                            service2.schedule(() -> {
+                                swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
+                                debug(key_point(start_time) + " - I just swapped to feather (CCvr == 3)");
+                            }, delay, TimeUnit.MILLISECONDS);
+                            service2.shutdown();
+
+                            //lighting
+                            if (Cvr == 0) { // feather 1
+                                ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                                service3.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with feather(1) CCvr == 3");
+                                }, delay * 2L, TimeUnit.MILLISECONDS);
+                                service3.shutdown();
+                            } else if (Cvr == 1) { //feather 2
+                                ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                                service3.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with feather(1/2) CCvr == 3");
+                                    ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                    service4.schedule(() -> {
+                                        MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                        debug(key_point(start_time) + " - I just painted with feather(2/2) CCvr == 3");
+                                    }, delay, TimeUnit.MILLISECONDS);
+                                    service4.shutdown();
+                                }, delay * 2L, TimeUnit.MILLISECONDS);
+                                service3.shutdown();
+                            } else if (Cvr == 2) {
+                                ScheduledExecutorService service3 = Executors.newScheduledThreadPool(1);
+                                service3.schedule(() -> {
+                                    MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                    debug(key_point(start_time) + " - I just painted with feather(1/3) CCvr == 3");
+                                    ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                    service4.schedule(() -> {
+                                        MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                        debug(key_point(start_time) + " - I just painted with feather(2/3) CCvr == 3");
+                                    }, delay, TimeUnit.MILLISECONDS);
+                                    service4.schedule(() -> {
+                                        MinecraftClient.getInstance().interactionManager.attackEntity(MinecraftClient.getInstance().player, ((EntityHitResult) MinecraftClient.getInstance().crosshairTarget).getEntity());
+                                        debug(key_point(start_time) + " - I just painted with feather(3/3) CCvr == 3");
+                                    }, delay *2L, TimeUnit.MILLISECONDS);
+                                    service4.shutdown();
+                                }, delay * 2L, TimeUnit.MILLISECONDS); //completed in 4
+                                service3.shutdown();
+                            }
+
+                            //going next
+                            {
+                                ScheduledExecutorService service4 = Executors.newScheduledThreadPool(1);
+                                service4.schedule(() -> {
+                                    backup.cancel(true);
+                                    serv.shutdown();
+
+                                /*
+                                if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])/4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y)))) &&
+                                        ((Byte.toUnsignedInt(mapState.colors[y * 128 + x])-MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]))/4).id*4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x,y))))))) {
+                                    int togo = 3;
+                                    while (curIND - togo < 0) { //если Х меньше чем надо пройти
+                                        togo = togo - curIND - 1; //то убираем Х и еще одну из-за 0
+                                        curIND =127*127; //ставим его на максимум прошлого ряда
+                                    }
+                                    curIND -=togo; //если же мы можем вычесть, то просто вычитаем
+                                    debug("now was an else, redrawing???");
+                                }
+                                 */
+                                    debug("updating render");
+                                    updateRender();
+                                    debug("going next");
+                                    gonext();
+                                }, delay * (Cvr == 0 ? 3L : Cvr == 1 ? 4L : 5L), TimeUnit.MILLISECONDS);
+                                service4.shutdown();
+                            }
+
+                        }
+                    }
                 }
+                break;
             }
+        }
     }
 
 
@@ -1077,17 +1435,13 @@ public class DrawlerClient implements ClientModInitializer {
      * Color, witch we should highlight slots with
      * @return hightlightColor field
      */
-    public static int getHighlightColor() {
-        return highlightColor;
-    }
+    public static int getHighlightColor() {return highlightColor;}
 
     /**
      * weather we should highlight slots or not
      * @return needtohightlight field
      */
-    public static boolean isHightlighting(){
-        return needtohighlight;
-    }
+    public static boolean isHightlighting(){return needtohighlight;}
 
     /**
      * RenderingItems field as an ArrayList
@@ -1103,9 +1457,7 @@ public class DrawlerClient implements ClientModInitializer {
      * @param time how much time passed since this value
      * @return how much time has passed
      */
-    private static long key_point(long time){
-        return (System.currentTimeMillis()-time);
-    }
+    private static long key_point(long time){return (System.currentTimeMillis()-time);}
 
     /**
      * resizes image to a given width and height
