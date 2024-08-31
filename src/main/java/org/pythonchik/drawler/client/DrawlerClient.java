@@ -15,6 +15,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.*;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.util.InputUtil;
@@ -22,7 +23,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.map.MapState;
 import net.minecraft.text.Text;
@@ -73,11 +73,13 @@ public class DrawlerClient implements ClientModInitializer {
     //2 = least popular color to most popular
     static String drawing_string = "";
     static String correction_string = "";
+    static String saveingname = "drawler";
     static ArrayList<ArrayList<Integer>> pixeldata = new ArrayList<>();
     static boolean mode34 = true;
     static boolean needtorender = false;
     static boolean needtohighlight = true;
     static boolean needtocorrect = true;
+    static boolean needtosave = false;
     static boolean iscorrectin = false;
     static ArrayList<ArrayList<Integer>> tocorrect = new ArrayList<>();
     static int delay = 250;
@@ -131,7 +133,7 @@ public class DrawlerClient implements ClientModInitializer {
                         tocorrect = new ArrayList<>();
                         ItemMap = new HashMap<>();
                         current = new HashMap<>();
-                        send_translatable("drawing.messages.done");
+                        send_translatable("drawing.messages.completed");
                         return 1;
                     }));
         }); //reset_drawing command
@@ -140,11 +142,11 @@ public class DrawlerClient implements ClientModInitializer {
             dispatcher.register(ClientCommandManager.literal("check_items")
                             .executes(context -> {
                                 if (todrawimg != null) {
-                                    send_message("Вам не хватает этих предметов:");
+                                    send_translatable("drawing.messages.missing_those");
                                     check_item();
                                     updateRender();
                                 } else {
-                                    send_message("Никакое изображение сейчас не рисуется");
+                                    send_translatable("drawing.messages.no_drawing");
                                 }
                                 return 1;
                             }));
@@ -163,7 +165,7 @@ public class DrawlerClient implements ClientModInitializer {
                     .then(ClientCommandManager.argument("x", IntegerArgumentType.integer(0,128))
                             .then(ClientCommandManager.argument("y", IntegerArgumentType.integer(0,128))
                                 .executes(context -> {
-                                    send_message("Координаты изменены с&c %d &fна&a %d".formatted(curIND,IntegerArgumentType.getInteger(context,"x")+128*IntegerArgumentType.getInteger(context,"y")));
+                                    send_translatable("drawing.messages.cords_changed",curIND,IntegerArgumentType.getInteger(context,"x")+128*IntegerArgumentType.getInteger(context,"y"));
                                     curIND = IntegerArgumentType.getInteger(context,"y")*128+IntegerArgumentType.getInteger(context,"x");
                                     return 1;
                                 }))));
@@ -173,7 +175,7 @@ public class DrawlerClient implements ClientModInitializer {
             dispatcher.register(ClientCommandManager.literal("set_drawing")
                     .then(ClientCommandManager.argument("point", IntegerArgumentType.integer(0,128*128))
                             .executes(context -> {
-                                send_message("Координаты изменены с &c %d &fна&a %d".formatted(curIND,IntegerArgumentType.getInteger(context,"point")));
+                                send_translatable("drawing.messages.cords_changed",curIND,IntegerArgumentType.getInteger(context,"point"));
                                 curIND = IntegerArgumentType.getInteger(context,"point");
                                 return 1;
                             })));
@@ -211,19 +213,19 @@ public class DrawlerClient implements ClientModInitializer {
                                         if (entry.get(0).equals(temp.get(0)) && entry.get(1).equals(temp.get(1))){
                                             Item ToFind = DrawlerConfig.items.get(entry.get(2));
                                             if (entry.get(3).equals(1)) { //nothing
-                                                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" - предмет нужный для рисования данного пикселя"))));
+                                                send_translatable("drawing.messages.item_for_this",I18n.translate(ToFind.getTranslationKey()));
                                             } else if (entry.get(3).equals(2)) { //feather 1
-                                                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" + ")).append(Text.translatable(Items.FEATHER.getTranslationKey()).append(Text.of(" - предметы нужны для рисования данного пикселя")))));
+                                                send_translatable("drawing.messages.items_for_this",I18n.translate(ToFind.getTranslationKey()),I18n.translate(Items.FEATHER.getTranslationKey()));
                                             } else if (entry.get(3).equals(0)) { //coal 1
-                                                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" + ")).append(Text.translatable(Items.COAL.getTranslationKey()).append(Text.of(" - предметы нужны для рисования данного пикселя")))));
+                                                send_translatable("drawing.messages.items_for_this",I18n.translate(ToFind.getTranslationKey()),I18n.translate(Items.COAL.getTranslationKey()));
                                             } else if (entry.get(3).equals(3)) { //coal 2
-                                                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" + ")).append(Text.translatable(Items.COAL.getTranslationKey()).append(Text.of(" + ")).append(Text.translatable(Items.COAL.getTranslationKey()).append(Text.of(" - предметы нужны для рисования данного пикселя"))))));
+                                                send_translatable("drawing.messages.itemss_for_this",I18n.translate(ToFind.getTranslationKey()),I18n.translate(Items.COAL.getTranslationKey()),I18n.translate(Items.COAL.getTranslationKey()));
                                             }
                                             break;
                                         }
                                     }
                                 } else {
-                                    send_message("Готово!");
+                                    send_translatable("drawing.messages.done");
                                 }
                                 return 1;
                             })));
@@ -262,19 +264,19 @@ public class DrawlerClient implements ClientModInitializer {
                                             if (entry.get(0).equals(temp.get(0)) && entry.get(1).equals(temp.get(1))){
                                                 Item ToFind = DrawlerConfig.items.get(entry.get(2));
                                                 if (entry.get(3).equals(1)) { //nothing
-                                                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" - предмет нужный для рисования данного пикселя"))));
+                                                    send_translatable("drawing.messages.item_for_this",I18n.translate(ToFind.getTranslationKey()));
                                                 } else if (entry.get(3).equals(2)) { //feather 1
-                                                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" + ")).append(Text.translatable(Items.FEATHER.getTranslationKey()).append(Text.of(" - предметы нужны для рисования данного пикселя")))));
+                                                    send_translatable("drawing.messages.items_for_this",I18n.translate(ToFind.getTranslationKey()),I18n.translate(Items.FEATHER.getTranslationKey()));
                                                 } else if (entry.get(3).equals(0)) { //coal 1
-                                                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" + ")).append(Text.translatable(Items.COAL.getTranslationKey()).append(Text.of(" - предметы нужны для рисования данного пикселя")))));
+                                                    send_translatable("drawing.messages.items_for_this",I18n.translate(ToFind.getTranslationKey()),I18n.translate(Items.COAL.getTranslationKey()));
                                                 } else if (entry.get(3).equals(3)) { //coal 2
-                                                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.of("§7[§6Drawler§7]§r ").copy().append(Text.translatable(ToFind.getTranslationKey()).append(Text.of(" + ")).append(Text.translatable(Items.COAL.getTranslationKey()).append(Text.of(" + ")).append(Text.translatable(Items.COAL.getTranslationKey()).append(Text.of(" - предметы нужны для рисования данного пикселя"))))));
+                                                    send_translatable("drawing.messages.itemss_for_this",I18n.translate(ToFind.getTranslationKey()),I18n.translate(Items.COAL.getTranslationKey()),I18n.translate(Items.COAL.getTranslationKey()));
                                                 }
                                                 break;
                                             }
                                         }
                                     } else {
-                                        send_message("Готово!");
+                                        send_translatable("drawing.messages.done");
                                     }
                                     return 1;
                             }))));
@@ -303,12 +305,12 @@ public class DrawlerClient implements ClientModInitializer {
             }
             while (pauseKeyBinding.wasPressed()){
                 if (todrawimg == null) {
-                    send_message("Нельзя снять с паузы, если ничего не рисовать");
+                    send_translatable("drawing.messages.no_drawing_no_pausing");
                     return;
                 }
                 isdrawin = !isdrawin;
                 if (isdrawin) {
-                    send_message("Продолжаем рисовать с точки &a%d".formatted(curIND));
+                    send_translatable("drawing.messages.continuing_from", curIND);
                     MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
                     int timeMS = 0;
                     for (int y = 0; y < 128; y++) {
@@ -336,16 +338,16 @@ public class DrawlerClient implements ClientModInitializer {
                             }
                         }
                     }
-                    send_message("Осталось рисовать примерно &c%dч %dмин %dс".formatted(timeMS/3600000,(timeMS/60000)%60,(timeMS/1000)%60));
+                    send_translatable("drawing.messages.time_remaining",timeMS/3600000,(timeMS/60000)%60,(timeMS/1000)%60);
                     gonext();
                 } else {
-                    send_message("Останавливаемся на точке &a%d".formatted(curIND));
+                    send_translatable("drawing.messages.pausing_on",curIND);
                 }
             }
 
             while (renderKeyBinding.wasPressed()) {
                 worldrender = !worldrender;
-                send_message("Готово! :(");
+                send_translatable("drawing.messages.done_sad");
             }
         }); //end of client tick (key presses)
 
@@ -429,7 +431,7 @@ public class DrawlerClient implements ClientModInitializer {
                     }
                     default -> {
                         worldrender = false;
-                        send_message("you can not.");
+                        send_translatable("drawing.messages.YOU_CAN_NOT");
                     }
                 }
 
@@ -471,7 +473,6 @@ public class DrawlerClient implements ClientModInitializer {
         send_translatable("drawing.messages.start_checking");
         tocorrect = new ArrayList<>();
         MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
-        isdrawin = false;
         int timeMS = 0;
         if (mapState != null) {
             for (int y = 0; y < 128; y++) {
@@ -486,16 +487,30 @@ public class DrawlerClient implements ClientModInitializer {
                 }
             }
             if (tocorrect.isEmpty()){
-                send_message("Ошибок не выявлено! картина готова!");
+                send_translatable("correction.messages.no_errors");
                 iscorrectin = false;
-                //TODO save pick if you said so in config
+                isdrawin = false;
+                if (needtosave) {
+                    if (MinecraftClient.getInstance().player.getInventory().getEmptySlot() == -1){
+                        send_translatable("drawing.saving.no_slots");
+                        return;
+                    }
+                    if (saveingname.length() >= 3 && saveingname.length() <= 16) { //name is valid . . kinda?
+                        MinecraftClient.getInstance().player.networkHandler.sendChatCommand("art save " + saveingname);
+                        send_translatable("drawing.saving.saved_as", saveingname);
+                    } else {
+                        send_translatable("drawing.saving.invalid_name");
+                    }
+                }
                 //TODO continued drawing in queue
             } else {
-                send_message("Проверка ошибок завершена, выявлено %d ошибок. Переходим к исправлению, это займет примерно &c%dч %dмин %dс".formatted(tocorrect.size(),timeMS/3600000,(timeMS/60000)%60,(timeMS/1000)%60));
-                gonext();
+                send_translatable("correction.messages.yes_errors__correcting",tocorrect.size(),timeMS/3600000,(timeMS/60000)%60,(timeMS/1000)%60);
+                if (backup.isCancelled() || backup.isDone()) {
+                    gonext();
+                }
             }
         } else {
-            send_message("С картой какая-то ошибка.");
+            send_translatable("drawing.messages.id_missing");
         }
     }
 
@@ -574,13 +589,13 @@ public class DrawlerClient implements ClientModInitializer {
             tocorrect = new ArrayList<>();
             updateRender();
             if (bacK_check_item()) {
-                send_message("Предметы, которые нужно собрать:");
+                send_translatable("drawing.messages.item_to_collect");
                 check_item();
             } else {
-                send_message("Ресурсы уже собраны.");
+                send_translatable("drawing.messages.items_collected");
             }
         } catch (Exception ignored) {
-            send_message("Что-то пошло не так, проверьте ссылку на изображение");
+            send_translatable("drawing.messages.check_img");
         }
     }
 
@@ -706,7 +721,7 @@ public class DrawlerClient implements ClientModInitializer {
             }
         } // most popular color to least
         else { //TODO add more drawing modes
-            send_message("Error: Invalid drawing mode value.");
+            send_translatable("drawing.errors.drawing_mode");
             return pixeldata;
         }
         return pixeldata;
@@ -714,7 +729,7 @@ public class DrawlerClient implements ClientModInitializer {
 
     private static boolean bacK_check_item(){
         if (ItemMap.isEmpty()){
-            send_message("Список ресурсов пустой, вы ничего не рисуете...");
+            send_translatable("drawing.errors.empty_items");
             return false;
         }
         MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
@@ -723,21 +738,21 @@ public class DrawlerClient implements ClientModInitializer {
                 for (int x = 0; x < 128; x++) {
                     if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y))))))
-                            && !MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(DrawlerConfig.items.get(DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y))))))) {
+                            && !MinecraftClient.getInstance().player.getInventory().containsAny(Set.of(DrawlerConfig.items.get(DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y))))))) {
                         return true;
                     }
                 }
             }
-            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(Items.COAL))){
+            if (!MinecraftClient.getInstance().player.getInventory().containsAny(Set.of(Items.COAL))) {
                 send_translatable(Items.COAL.getTranslationKey());
                 return true;
             }
-            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(Items.FEATHER))){
+            if (!MinecraftClient.getInstance().player.getInventory().containsAny(Set.of(Items.FEATHER))){
                 send_translatable(Items.FEATHER.getTranslationKey());
                 return true;
             }
         } else {
-            send_message("С картой какая-то ошибка.");
+            send_translatable("drawing.messages.id_missing");
         }
         return false;
     }
@@ -745,7 +760,7 @@ public class DrawlerClient implements ClientModInitializer {
     private static void check_item(){
         boolean temp = false;
         if (ItemMap.isEmpty()){
-            send_message("Список ресурсов пустой, вы ничего не рисуете...");
+            send_translatable("drawing.errors.empty_items");
             return;
         }
         ArrayList<Item> seen = new ArrayList<>();
@@ -755,7 +770,7 @@ public class DrawlerClient implements ClientModInitializer {
                 for (int x = 0; x < 128; x++) {
                     if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y))))))
-                            && !MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(DrawlerConfig.items.get(DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y))))))) {
+                            && !MinecraftClient.getInstance().player.getInventory().containsAny(Set.of(DrawlerConfig.items.get(DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x,y))))))) {
                         Color color = new Color(todrawimg.getRGB(x, y));
                         if (!seen.contains(DrawlerConfig.items.get(DrawlerConfig.getColorID(color)))) {
                             seen.add(DrawlerConfig.items.get(DrawlerConfig.getColorID(color)));
@@ -765,19 +780,19 @@ public class DrawlerClient implements ClientModInitializer {
                     }
                 }
             }
-            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(Items.COAL))){
+            if (!MinecraftClient.getInstance().player.getInventory().containsAny(Set.of(Items.COAL))){
                 send_translatable(Items.COAL.getTranslationKey());
                 temp = true;
             }
-            if (!MinecraftClient.getInstance().player.getInventory().contains(new ItemStack(Items.FEATHER))){
+            if (!MinecraftClient.getInstance().player.getInventory().containsAny(Set.of(Items.FEATHER))){
                 send_translatable(Items.FEATHER.getTranslationKey());
                 temp = true;
             }
         } else {
-            send_message("С картой какая-то ошибка.");
+            send_translatable("drawing.messages.id_missing");
         }
         if (!temp){
-            send_message("Все ресурсы были уже собраны!");
+            send_translatable("drawing.messages.items_collected");
         }
     }
 
@@ -798,7 +813,7 @@ public class DrawlerClient implements ClientModInitializer {
                 RenderingItems = new ArrayList<>();
             }
         } else {
-            send_message("С картой какая-то ошибка.");
+            send_translatable("drawing.messages.id_missing");
             RenderingItems = new ArrayList<>();
         }
     }
@@ -814,13 +829,13 @@ public class DrawlerClient implements ClientModInitializer {
                         Random rand = new Random();
                         ind = rand.nextInt(tocorrect.size());
                     } else {
-                        send_message("Неверное значение режима исправление. очень странно...");
+                        send_translatable("drawing.error.correction_mode");
                         return;
                     }
                     draw(tocorrect.get(ind));
                     tocorrect.remove(ind);
                 } else {
-                    send_message("Работа над ошибками завершена");
+                    send_translatable("correction.messages.completed");
                     isdrawin = false;
                     iscorrectin = false;
                     check_errors();
@@ -846,7 +861,7 @@ public class DrawlerClient implements ClientModInitializer {
                             ((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4) == Cvr))) {
                         curIND += 1;
                         if (!(pixeldata.size() > curIND && curIND >= 0)) {
-                            send_message("пиксели закончились, или индекс слишком большой");
+                            send_translatable("drawing.errors.index_too_big");
                             isdrawin = false;
                             curIND = 0;
                             if (needtocorrect) check_errors();
@@ -863,7 +878,7 @@ public class DrawlerClient implements ClientModInitializer {
                     draw(pixeldata.get(curIND));
                     curIND+=1;
                 } else {
-                    send_message("пиксели закончились, или индекс слишком большой");
+                    send_translatable("drawing.errors.index_too_big");
                     isdrawin = false;
                     curIND = 0;
                     if (needtocorrect) check_errors();
@@ -930,10 +945,15 @@ public class DrawlerClient implements ClientModInitializer {
                 if (!(MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x]) / 4)).id == Cid)) {
                     //taking item in hand, or returning, if we don't have it
                     Item ToFind = DrawlerConfig.items.get(Cid);
-                    if (player.getInventory().contains(new ItemStack(ToFind))) {
-                        swapItem(player.getInventory().indexOf(new ItemStack(ToFind)));
+                    if (player.getInventory().containsAny(Set.of(ToFind))) {
+                        for (int i = 0;i<36;i++) {
+                            if (player.getInventory().getStack(i).getItem().equals(ToFind)) {
+                                swapItem(i);
+                                break;
+                            }
+                        }
                     } else {
-                        send_translatable("drawing.messages.missing", Text.translatable(ToFind.getTranslationKey()));
+                        send_translatable("drawing.messages.missing", I18n.translate(ToFind.getTranslationKey()));
                         isdrawin = false;
                         curIND -= 1;
                         backup.cancel(true);
@@ -942,11 +962,11 @@ public class DrawlerClient implements ClientModInitializer {
                     }
 
                     // check if we are missing coal of feather
-                    if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)) {
+                    if (!((Cvr == 2 && player.getInventory().containsAny(Set.of(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 1)) {
                         if (Cvr == 2)
-                            send_translatable("drawing.messages.missing", Text.translatable(Items.FEATHER.getTranslationKey()));
+                            send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
                         else
-                            send_translatable("drawing.messages.missing", Text.translatable(Items.COAL.getTranslationKey()));
+                            send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
                         isdrawin = false;
                         curIND -= 1;
                         backup.cancel(true);
@@ -966,14 +986,24 @@ public class DrawlerClient implements ClientModInitializer {
                             if (Cvr == 2) { // feather 1
                                 ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                                 service2.schedule(() -> {
-                                    swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
+                                    for (int i = 0;i<36;i++) {
+                                        if (player.getInventory().getStack(i).getItem().equals(Items.FEATHER)) {
+                                            swapItem(i);
+                                            break;
+                                        }
+                                    }
                                     debug(key_point(start_time) + " - I just swapped to feather");
                                 }, delay, TimeUnit.MILLISECONDS);
                                 service2.shutdown();
                             } else if (Cvr == 3 || Cvr == 0) { //coal 2
                                 ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                                 service2.schedule(() -> {
-                                    swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
+                                    for (int i = 0;i<36;i++) {
+                                        if (player.getInventory().getStack(i).getItem().equals(Items.COAL)) {
+                                            swapItem(i);
+                                            break;
+                                        }
+                                    }
                                     debug(key_point(start_time) + " - I just swapped to coal");
                                 }, delay, TimeUnit.MILLISECONDS);
                                 service2.shutdown();
@@ -1086,11 +1116,11 @@ public class DrawlerClient implements ClientModInitializer {
 
                     if (CCvr == 1) {
 
-                        if (!((Cvr == 2 && player.getInventory().contains(new ItemStack(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 1)) {
+                        if (!((Cvr == 2 && player.getInventory().containsAny(Set.of(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 1)) {
                             if (Cvr == 2)
-                                send_translatable("drawing.messages.missing", Text.translatable(Items.FEATHER.getTranslationKey()));
+                                send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
                             else
-                                send_translatable("drawing.messages.missing", Text.translatable(Items.COAL.getTranslationKey()));
+                                send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
                             isdrawin = false;
                             curIND -= 1;
                             backup.cancel(true);
@@ -1105,14 +1135,24 @@ public class DrawlerClient implements ClientModInitializer {
                         if (Cvr == 2) { // feather 1
                             ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                             service2.schedule(() -> {
-                                swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
+                                for (int i = 0;i<36;i++) {
+                                    if (player.getInventory().getStack(i).getItem().equals(Items.FEATHER)) {
+                                        swapItem(i);
+                                        break;
+                                    }
+                                }
                                 debug(key_point(start_time) + " - I just swapped to feather");
                             }, delay, TimeUnit.MILLISECONDS);
                             service2.shutdown();
                         } else if (Cvr == 3 || Cvr == 0) { //coal 2
                             ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                             service2.schedule(() -> {
-                                swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
+                                for (int i = 0;i<36;i++) {
+                                    if (player.getInventory().getStack(i).getItem().equals(Items.COAL)) {
+                                        swapItem(i);
+                                        break;
+                                    }
+                                }
                                 debug(key_point(start_time) + " - I just swapped to coal");
                             }, delay, TimeUnit.MILLISECONDS);
                             service2.shutdown();
@@ -1169,11 +1209,11 @@ public class DrawlerClient implements ClientModInitializer {
                         }
 
                     } else if (CCvr == 0) {
-                        if (!(((Cvr == 2 || Cvr == 1) && player.getInventory().contains(new ItemStack(Items.FEATHER))) || (Cvr == 3 && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 0)) {
+                        if (!(((Cvr == 2 || Cvr == 1) && player.getInventory().containsAny(Set.of(Items.FEATHER))) || (Cvr == 3 && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 0)) {
                                 if (Cvr == 2 || Cvr == 1)
-                                    send_translatable("drawing.messages.missing", Text.translatable(Items.FEATHER.getTranslationKey()));
+                                    send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
                                 else
-                                    send_translatable("drawing.messages.missing", Text.translatable(Items.COAL.getTranslationKey()));
+                                    send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
                                 isdrawin = false;
                                 curIND -= 1;
                                 backup.cancel(true);
@@ -1185,14 +1225,24 @@ public class DrawlerClient implements ClientModInitializer {
                         if (Cvr == 2 || Cvr == 1) { // feather 1 or 2
                             ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                             service2.schedule(() -> {
-                                swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
+                                for (int i = 0;i<36;i++) {
+                                    if (player.getInventory().getStack(i).getItem().equals(Items.FEATHER)) {
+                                        swapItem(i);
+                                        break;
+                                    }
+                                }
                                 debug(key_point(start_time) + " - I just swapped to feather (CCvr == 0)");
                             }, delay, TimeUnit.MILLISECONDS);
                             service2.shutdown();
                         } else if (Cvr == 3) { //coal 3
                             ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                             service2.schedule(() -> {
-                                swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
+                                for (int i = 0;i<36;i++) {
+                                    if (player.getInventory().getStack(i).getItem().equals(Items.COAL)) {
+                                        swapItem(i);
+                                        break;
+                                    }
+                                }
                                 debug(key_point(start_time) + " - I just swapped to coal (CCvr == 0)");
                             }, delay, TimeUnit.MILLISECONDS);
                             service2.shutdown();
@@ -1250,8 +1300,8 @@ public class DrawlerClient implements ClientModInitializer {
 
                     } else if (CCvr == 2) {
 
-                        if (!(((Cvr == 0 || Cvr == 1 || Cvr == 3) && player.getInventory().contains(new ItemStack(Items.COAL))) || Cvr == 2)) {
-                                send_translatable("drawing.messages.missing", Text.translatable(Items.COAL.getTranslationKey()));
+                        if (!(((Cvr == 0 || Cvr == 1 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 2)) {
+                                send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
                                 isdrawin = false;
                                 curIND -= 1;
                                 backup.cancel(true);
@@ -1262,7 +1312,12 @@ public class DrawlerClient implements ClientModInitializer {
                         //taking item coal
                         ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                         service2.schedule(() -> {
-                            swapItem(player.getInventory().indexOf(new ItemStack(Items.COAL)));
+                            for (int i = 0;i<36;i++) {
+                                if (player.getInventory().getStack(i).getItem().equals(Items.COAL)) {
+                                    swapItem(i);
+                                    break;
+                                }
+                            }
                             debug(key_point(start_time) + " - I just swapped to coal (CCvr == 2)");
                         }, delay, TimeUnit.MILLISECONDS);
                         service2.shutdown();
@@ -1336,8 +1391,8 @@ public class DrawlerClient implements ClientModInitializer {
 
                     } else {
                         {
-                            if (!(((Cvr == 0 || Cvr == 1 || Cvr == 2) && player.getInventory().contains(new ItemStack(Items.FEATHER))) || Cvr == 3)) {
-                                send_translatable("drawing.messages.missing", Text.translatable(Items.FEATHER.getTranslationKey()));
+                            if (!(((Cvr == 0 || Cvr == 1 || Cvr == 2) && player.getInventory().containsAny(Set.of(Items.FEATHER))) || Cvr == 3)) {
+                                send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
                                 isdrawin = false;
                                 curIND -= 1;
                                 backup.cancel(true);
@@ -1348,7 +1403,12 @@ public class DrawlerClient implements ClientModInitializer {
                             //taking item feather
                             ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
                             service2.schedule(() -> {
-                                swapItem(player.getInventory().indexOf(new ItemStack(Items.FEATHER)));
+                                for (int i = 0;i<36;i++) {
+                                    if (player.getInventory().getStack(i).getItem().equals(Items.FEATHER)) {
+                                        swapItem(i);
+                                        break;
+                                    }
+                                }
                                 debug(key_point(start_time) + " - I just swapped to feather (CCvr == 3)");
                             }, delay, TimeUnit.MILLISECONDS);
                             service2.shutdown();
@@ -1521,7 +1581,8 @@ public class DrawlerClient implements ClientModInitializer {
      * @param args arguments for the translation
      */
     public static void send_translatable(String message, Object... args){
-        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.translatable(message.replace('&','§'),args)));
+        //MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.literal(Text.stringifiedTranslatable(message,args).toString().replace('&','§'))));
+        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.literal(I18n.translate(message, args))));
     }
 
     /**

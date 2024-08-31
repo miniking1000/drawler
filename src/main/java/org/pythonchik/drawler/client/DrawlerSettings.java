@@ -3,9 +3,7 @@ package org.pythonchik.drawler.client;
 
 import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.DumperOptions;
 import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.Yaml;
-import me.shedaniel.clothconfig2.api.ConfigBuilder;
-import me.shedaniel.clothconfig2.api.ConfigCategory;
-import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import me.shedaniel.clothconfig2.api.*;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -158,6 +156,27 @@ public class DrawlerSettings {
                 .setDefaultValue(true)
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.correction","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.needtocorrect = newValue)
+                .build());
+
+
+        //save button
+        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.save_button", "check your localization file"), DrawlerClient.needtosave)
+                .setDefaultValue(false)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.save_button", "check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.needtosave = newValue)
+                .build());
+
+        //save name
+        general.addEntry(entryBuilder.startStrField(Text.translatableWithFallback("settings.option.save_name", "check your localization file"), DrawlerClient.saveingname)
+                .setDefaultValue("drawler")
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.save_name", "check your localization file"))
+                .setSaveConsumer(newValue -> {
+                    if (newValue.length() >= 3 && newValue.length() <= 16){
+                        DrawlerClient.saveingname = newValue;
+                    } else {
+                        DrawlerClient.send_translatable("drawing.saving.invalid_name", newValue);
+                    }
+                })
                 .build());
 
         String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString()}; //change this to number of modes
