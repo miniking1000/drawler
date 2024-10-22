@@ -28,6 +28,7 @@
   "settings.drawing_mode.2": "Случайно",
   "settings.drawing_mode.3": "Менее популярный краситель к более популярному",
   "settings.drawing_mode.4": "Более популярный краситель к менее популярному",
+  "settings.drawing_mode.5": "Сначала границы потом заполнение",
   "settings.option.rendering": "Превью",
   "settings.tooltip.rendering":"Если включено, то в верхнем левом углу будет превью изображение которе сейчас рисуется",
   "settings.option.highlighting": "Подцветка",

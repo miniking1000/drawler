@@ -71,6 +71,8 @@ public class DrawlerClient implements ClientModInitializer {
     //0 = default, from left to right, up to down...
     //1 = random, just random.
     //2 = least popular color to most popular
+    //3 - most popular color to least popular
+    //4 - borders then filling
     static String drawing_string = "";
     static String correction_string = "";
     static String saveingname = "drawler";
@@ -720,11 +722,72 @@ public class DrawlerClient implements ClientModInitializer {
                 ids.remove(lowkey);
             }
         } // most popular color to least
+        else if (drawing_mode == 4) {
+            ArrayList<ArrayList<Integer>> temp = new ArrayList<>();
+            ArrayList<Integer> temp2;
+
+            for (int y = 0; y < image.getHeight(); y++) {
+                for (int x = 0; x < image.getWidth(); x++) {
+                    temp2 = new ArrayList<>();
+                    temp2.add(x);
+                    temp2.add(y);
+                    temp2.add(DrawlerConfig.getColorID(new Color(image.getRGB(x, y))));
+                    temp2.add(DrawlerConfig.getColorVariant(new Color(image.getRGB(x, y))));
+                    temp.add(temp2);
+                }
+            }
+
+            ArrayList<ArrayList<Integer>> list1 = new ArrayList<>();
+            ArrayList<ArrayList<Integer>> list2 = new ArrayList<>();
+
+            int[][] neighbors = {
+                    {-1, 0}, {1, 0}, // left, right
+                    {0, -1}, {0, 1}  // up, down
+            };
+            for (ArrayList<Integer> pixel : temp) {
+                int x = pixel.get(0);
+                int y = pixel.get(1);
+                int colorId = pixel.get(2);
+                int colorVariant = pixel.get(3);
+                boolean allNeighborsMatch = true;
+
+                for (int[] dir : neighbors) {
+                    int newX = x + dir[0];
+                    int newY = y + dir[1];
+                    if (newX >= 0 && newX < 128 && newY >= 0 && newY < 128) {
+                        ArrayList<Integer> neighbor = getPixelByCoordinates(temp, newX, newY);
+                        if (neighbor == null || neighbor.get(2) != colorId || neighbor.get(3) != colorVariant) {
+                            allNeighborsMatch = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (allNeighborsMatch) {
+                    list2.add(pixel);
+                } else {
+                    list1.add(pixel);
+                }
+            }
+
+            list1.addAll(list2);
+
+            pixeldata.addAll(list1);
+        } // borders  then filling
         else { //TODO add more drawing modes
             send_translatable("drawing.errors.drawing_mode");
             return pixeldata;
         }
         return pixeldata;
+    }
+
+    public static ArrayList<Integer> getPixelByCoordinates(ArrayList<ArrayList<Integer>> temp, int x, int y) {
+        for (ArrayList<Integer> pixel : temp) {
+            if (pixel.get(0) == x && pixel.get(1) == y) {
+                return pixel;
+            }
+        }
+        return null;
     }
 
     private static boolean bacK_check_item(){

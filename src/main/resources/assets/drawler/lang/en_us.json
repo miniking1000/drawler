@@ -28,6 +28,7 @@
   "settings.drawing_mode.2": "Random",
   "settings.drawing_mode.3": "Least popular color to most popular",
   "settings.drawing_mode.4": "Most popular color to least popular",
+  "settings.drawing_mode.5": "Borders then inside",
   "settings.option.rendering": "Rendering",
   "settings.tooltip.rendering":"If you turn this on, you will see preview of your picture in your left upper corner of the screen",
   "settings.option.highlighting": "Highlighting",

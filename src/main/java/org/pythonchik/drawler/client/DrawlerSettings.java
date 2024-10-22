@@ -69,7 +69,7 @@ public class DrawlerSettings {
 
 
     public static void phrase_mode() {
-        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString()};
+        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.4").getString()};
 
         if (DrawlerClient.drawing_string.equals(modes[0])) {
             DrawlerClient.drawing_mode = 0;
@@ -79,6 +79,8 @@ public class DrawlerSettings {
             DrawlerClient.drawing_mode = 2;
         } else if (DrawlerClient.drawing_string.equals(modes[3])) {
             DrawlerClient.drawing_mode = 3;
+        } else if (DrawlerClient.drawing_string.equals(modes[4])) {
+            DrawlerClient.drawing_mode = 4;
         }
         if (DrawlerClient.correction_string.equals(modes[0])) {
             DrawlerClient.correction_mode = 0;
@@ -179,7 +181,7 @@ public class DrawlerSettings {
                 })
                 .build());
 
-        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString()}; //change this to number of modes
+        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.5").getString()}; //change this to number of modes
         String[] Cmodes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()}; //change this to number of modes
 
         drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.drawing_mode","check your localization file"),modes[DrawlerClient.drawing_mode])
