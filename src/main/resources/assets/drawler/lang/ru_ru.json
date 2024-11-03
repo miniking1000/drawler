@@ -87,5 +87,8 @@
 
   "correction.messages.no_errors": "Ошибок не выявлено! картина готова!",
   "correction.messages.yes_errors__correcting": "Проверка ошибок завершена, выявлено %d ошибок. Переходим к исправлению, это займет примерно §c%dч %dмин %dс",
-  "correction.messages.completed": "Работа над ошибками завершена"
+  "correction.messages.completed": "Работа над ошибками завершена",
+
+  "sounds.subtitles.done": "Картина готова",
+  "sounds.subtitles.error": "Не хватает предмета"
 }

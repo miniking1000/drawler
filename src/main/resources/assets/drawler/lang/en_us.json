@@ -49,6 +49,13 @@
   "settings.tooltip.save_button": "If true, will save image after the end of drawing",
   "settings.option.save_name": "Save name",
   "settings.tooltip.save_name": "Name, with which art will be saved\nHave to be from 3 to 16 symbols",
+  "settings.option.needtosound": "Sound",
+  "settings.tooltip.needtosound": "Toggles the sounds on finish or when you don't have an item to continue drawing",
+  "settings.option.soundpack": "Sound pack",
+  "settings.tooltip.soundpack": "Switches between different sound packs",
+  "settings.sound_mode.1": "default",
+  "settings.sound_mode.2": "discord",
+  "settings.sound_mode.3": "loud",
 
   "drawing.messages.missing": "%d is not found, please take this item to inventory to continue. Drawing is now paused.",
   "drawing.messages.id_missing": "map ID is not correct, map not found.",
@@ -87,5 +94,8 @@
 
   "correction.messages.no_errors": "No errors detected! The painting is done!",
   "correction.messages.yes_errors__correcting": "Check complete, there are %s errors. Starting to fix them, it will take approximately §c%sh %smin %ss",
-  "correction.messages.completed": "Error check completed."
+  "correction.messages.completed": "Error check completed.",
+
+  "sounds.subtitles.done": "The painting is done",
+  "sounds.subtitles.error": "Missing an item"
 }

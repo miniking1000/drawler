@@ -19,6 +19,9 @@ import java.util.*;
 public class DrawlerSettings {
 
     private static final File settings_file = new File("config/saved.yml");
+    public static final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.5").getString()}; //change this to number of modes
+    public static final String[] Cmodes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()}; //change this to number of modes
+    public static final String[] Smodes = new String[]{"default", "discord", "loud"};
 
     public static void saveSettings() {
         Map<String,Object> data = new HashMap<>();
@@ -31,7 +34,8 @@ public class DrawlerSettings {
         data.put("idDev",DrawlerClient.isDev);
         data.put("needtohighlight",DrawlerClient.needtohighlight);
         data.put("highlightcolor",DrawlerClient.highlightColor);
-
+        data.put("soundpack",DrawlerClient.soundPack);
+        data.put("needtosound",DrawlerClient.needtosound);
 
         //add line here to save value
 
@@ -62,6 +66,8 @@ public class DrawlerSettings {
             DrawlerClient.isDev = (Boolean) data.getOrDefault("idDev",false);
             DrawlerClient.needtohighlight = (Boolean) data.getOrDefault("needtohighlight",true);
             DrawlerClient.highlightColor = (Integer) data.getOrDefault("highlightcolor",0x80FF0000);
+            DrawlerClient.soundPack = (String) data.getOrDefault("soundpack", "default");
+            DrawlerClient.needtosound = (Boolean) data.getOrDefault("needtosound", true);
             //add line here to load value
 
         } catch (Exception ignored) {}
@@ -69,7 +75,6 @@ public class DrawlerSettings {
 
 
     public static void phrase_mode() {
-        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.4").getString()};
 
         if (DrawlerClient.drawing_string.equals(modes[0])) {
             DrawlerClient.drawing_mode = 0;
@@ -99,7 +104,7 @@ public class DrawlerSettings {
         builder.setSavingRunnable(() -> {
             saveSettings();
             phrase_mode();
-            Drawler.LOGGER.info("So for this is kind of easy, just know, that its a secure link with a few missing characters(`?`): 8*20*?*16*19://25*15*21*20*21.2*5/14*4!*4*23*1!*h*c*26!*24!*g*?");
+            Drawler.LOGGER.info("You guys are no fun... 8*20*?*16*19://25*15*21*20*21.2*5/14*4!*4*23*1!*h*c*26!*24!*g*?");
         });
 
 
@@ -181,16 +186,30 @@ public class DrawlerSettings {
                 })
                 .build());
 
-        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.5").getString()}; //change this to number of modes
-        String[] Cmodes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()}; //change this to number of modes
+        //sound button
+        general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.needtosound", "check your localization file"), DrawlerClient.needtosound)
+                .setDefaultValue(true)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.needtosound", "check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.needtosound = newValue)
+                .build());
 
+        //sound modes
+        general.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.soundpack","check your localization file"),DrawlerClient.soundPack)
+                .setDefaultValue(Smodes[0])
+                .setSelections(Arrays.stream(Smodes).toList())
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.soundpack","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.soundPack = newValue)
+                .build());
+
+        //drawing modes
         drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.drawing_mode","check your localization file"),modes[DrawlerClient.drawing_mode])
-                .setDefaultValue(modes[0])
+                .setDefaultValue(DrawlerSettings.modes[0])
                 .setSelections(Arrays.stream(modes).toList())
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.drawing_mode","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.drawing_string = newValue)
                 .build());
 
+        //correction modes
         drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.correction_mode","check your localization file"),Cmodes[DrawlerClient.correction_mode])
                 .setDefaultValue(Cmodes[0])
                 .setSelections(Arrays.stream(Cmodes).toList())

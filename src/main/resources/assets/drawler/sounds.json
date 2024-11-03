@@ -1,0 +1,38 @@
+{
+  "default.done": {
+    "subtitle": "sounds.subtitles.done",
+    "sounds": [
+      "drawler:default/done"
+    ]
+  },
+  "default.error": {
+    "subtitle": "sounds.subtitles.error",
+    "sounds": [
+      "drawler:default/error"
+    ]
+  },
+  "discord.done": {
+    "subtitle": "sounds.subtitles.done",
+    "sounds": [
+      "drawler:discord/done"
+    ]
+  },
+  "discord.error": {
+    "subtitle": "sounds.subtitles.error",
+    "sounds": [
+      "drawler:discord/error"
+    ]
+  },
+  "loud.done": {
+    "subtitle": "sounds.subtitles.done",
+    "sounds": [
+      "drawler:loud/done"
+    ]
+  },
+  "loud.error": {
+    "subtitle": "sounds.subtitles.error",
+    "sounds": [
+      "drawler:loud/error"
+    ]
+  }
+}

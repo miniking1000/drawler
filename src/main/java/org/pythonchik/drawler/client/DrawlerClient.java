@@ -25,6 +25,10 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.item.map.MapState;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
@@ -35,6 +39,7 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 import org.pythonchik.drawler.Drawler;
 import org.pythonchik.drawler.DrawlerConfig;
+import org.pythonchik.drawler.sound.CustomSounds;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -83,6 +88,8 @@ public class DrawlerClient implements ClientModInitializer {
     static boolean needtocorrect = true;
     static boolean needtosave = false;
     static boolean iscorrectin = false;
+    static boolean needtosound = true;
+    static String soundPack = "default";
     static ArrayList<ArrayList<Integer>> tocorrect = new ArrayList<>();
     static int delay = 250;
     static int curIND = 0;
@@ -96,6 +103,8 @@ public class DrawlerClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+
+        CustomSounds.initialize();
 
         {
             openMenuKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -488,8 +497,9 @@ public class DrawlerClient implements ClientModInitializer {
                     }
                 }
             }
-            if (tocorrect.isEmpty()){
+            if (tocorrect.isEmpty()) {
                 send_translatable("correction.messages.no_errors");
+                playSound(soundPack + "_done");
                 iscorrectin = false;
                 isdrawin = false;
                 if (needtosave) {
@@ -507,6 +517,7 @@ public class DrawlerClient implements ClientModInitializer {
                 //TODO continued drawing in queue
             } else {
                 send_translatable("correction.messages.yes_errors__correcting",tocorrect.size(),timeMS/3600000,(timeMS/60000)%60,(timeMS/1000)%60);
+                playSound(soundPack + "_error");
                 if (backup.isCancelled() || backup.isDone()) {
                     gonext();
                 }
@@ -912,6 +923,7 @@ public class DrawlerClient implements ClientModInitializer {
                     debug(curIND + " " + x + " " + y + " " + Cid + " " + Cvr);
                     if (MinecraftClient.getInstance().world == null) {
                         send_translatable("drawing.messages.error");
+                        playSound(soundPack + "_error");
                         isdrawin = false;
                         return;
                     }
@@ -1017,6 +1029,7 @@ public class DrawlerClient implements ClientModInitializer {
                         }
                     } else {
                         send_translatable("drawing.messages.missing", I18n.translate(ToFind.getTranslationKey()));
+                        playSound(soundPack + "_error");
                         isdrawin = false;
                         curIND -= 1;
                         backup.cancel(true);
@@ -1552,6 +1565,20 @@ public class DrawlerClient implements ClientModInitializer {
     }
 
 
+    public static void playSound(String soundName) {
+        if (needtosound) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client.player != null) {
+                SoundEvent soundEvent = CustomSounds.get_by_name(soundName);
+                if (soundEvent != null) {
+                    client.player.playSound(soundEvent);
+                } else {
+                    debug("sound " + soundName + " was not found");
+                }
+            }
+        }
+    }
+
     //tech functions (they all probably won't break)
 
     /**
@@ -1644,7 +1671,6 @@ public class DrawlerClient implements ClientModInitializer {
      * @param args arguments for the translation
      */
     public static void send_translatable(String message, Object... args){
-        //MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.literal(Text.stringifiedTranslatable(message,args).toString().replace('&','§'))));
         MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.literal(I18n.translate(message, args))));
     }
 
