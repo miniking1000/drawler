@@ -25,9 +25,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.item.map.MapState;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -99,7 +96,7 @@ public class DrawlerClient implements ClientModInitializer {
     private static KeyBinding openMenuKeyBinding;
     private static KeyBinding pauseKeyBinding;
     private static KeyBinding renderKeyBinding;
-    private static final Identifier MAP_CHKRBRD = Identifier.of("minecraft:textures/map/map_background.png");
+    private static final Identifier MAP_CHKRBRD = Identifier.of("minecraft", "textures/map/map_background.png");
 
     @Override
     public void onInitializeClient() {
@@ -448,14 +445,15 @@ public class DrawlerClient implements ClientModInitializer {
 
                 Matrix4f positionMatrix = matrixStack.peek().getPositionMatrix();
                 Tessellator tessellator = Tessellator.getInstance();
-                BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
+                BufferBuilder buffer = tessellator.getBuffer();
 
-                buffer.vertex(positionMatrix, 0, 1, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f);
-                buffer.vertex(positionMatrix, 0, 0, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f);
-                buffer.vertex(positionMatrix, 1, 0, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f);
-                buffer.vertex(positionMatrix, 1, 1, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f);
+                buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE);
+                buffer.vertex(positionMatrix, 0, 1, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f).next();
+                buffer.vertex(positionMatrix, 0, 0, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f).next();
+                buffer.vertex(positionMatrix, 1, 0, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f).next();
+                buffer.vertex(positionMatrix, 1, 1, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f).next();
 
-                RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+                RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
                 if (!isthere){
                     try {
                         MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(Identifier.of("drawler", "default.png")).get().getInputStream())));

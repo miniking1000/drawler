@@ -18,24 +18,24 @@ public class CustomSounds {
 
 
     private static SoundEvent registerSound(String id) {
-        Identifier identifier = Identifier.of(Drawler.MOD_ID, id);
+        Identifier identifier = new Identifier(Drawler.MOD_ID, id);
         return Registry.register(Registries.SOUND_EVENT, identifier, SoundEvent.of(identifier));
     }
 
-    public static void initialize() {
 
-        Registry.register(Registries.SOUND_EVENT, Identifier.of(Drawler.MOD_ID, "default.done"),
-                SoundEvent.of(Identifier.of(Drawler.MOD_ID, "default.done")));
-        Registry.register(Registries.SOUND_EVENT, Identifier.of(Drawler.MOD_ID, "default.error"),
-                SoundEvent.of(Identifier.of(Drawler.MOD_ID, "default.error")));
-        Registry.register(Registries.SOUND_EVENT, Identifier.of(Drawler.MOD_ID, "discord.done"),
-                SoundEvent.of(Identifier.of(Drawler.MOD_ID, "discord.done")));
-        Registry.register(Registries.SOUND_EVENT, Identifier.of(Drawler.MOD_ID, "discord.error"),
-                SoundEvent.of(Identifier.of(Drawler.MOD_ID, "discord.error")));
-        Registry.register(Registries.SOUND_EVENT, Identifier.of(Drawler.MOD_ID, "loud.done"),
-                SoundEvent.of(Identifier.of(Drawler.MOD_ID, "loud.done")));
-        Registry.register(Registries.SOUND_EVENT, Identifier.of(Drawler.MOD_ID, "loud.error"),
-                SoundEvent.of(Identifier.of(Drawler.MOD_ID, "loud.error")));
+    public static void initialize() {
+        Registry.register(Registries.SOUND_EVENT, new Identifier(Drawler.MOD_ID, "default.done"),
+                SoundEvent.of(new Identifier(Drawler.MOD_ID, "default.done")));
+        Registry.register(Registries.SOUND_EVENT, new Identifier(Drawler.MOD_ID, "default.error"),
+                SoundEvent.of(new Identifier(Drawler.MOD_ID, "default.error")));
+        Registry.register(Registries.SOUND_EVENT, new Identifier(Drawler.MOD_ID, "discord.done"),
+                SoundEvent.of(new Identifier(Drawler.MOD_ID, "discord.done")));
+        Registry.register(Registries.SOUND_EVENT, new Identifier(Drawler.MOD_ID, "discord.error"),
+                SoundEvent.of(new Identifier(Drawler.MOD_ID, "discord.error")));
+        Registry.register(Registries.SOUND_EVENT, new Identifier(Drawler.MOD_ID, "loud.done"),
+                SoundEvent.of(new Identifier(Drawler.MOD_ID, "loud.done")));
+        Registry.register(Registries.SOUND_EVENT, new Identifier(Drawler.MOD_ID, "loud.error"),
+                SoundEvent.of(new Identifier(Drawler.MOD_ID, "loud.error")));
     }
 
     public static SoundEvent get_by_name(String name) {
