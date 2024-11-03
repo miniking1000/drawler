@@ -5,6 +5,7 @@ import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.DumperOptions;
 import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.Yaml;
 import me.shedaniel.clothconfig2.api.*;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.pythonchik.drawler.Drawler;
@@ -19,9 +20,7 @@ import java.util.*;
 public class DrawlerSettings {
 
     private static final File settings_file = new File("config/saved.yml");
-    public static final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.5").getString()}; //change this to number of modes
-    public static final String[] Cmodes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString()}; //change this to number of modes
-    public static final String[] Smodes = new String[]{"default", "discord", "loud"};
+    public static String[] Smodes = new String[]{"default", "discord", "loud"}; // IF THIS WILL USE TRANSALTABLES MOVE TO THE METHODS
 
     public static void saveSettings() {
         Map<String,Object> data = new HashMap<>();
@@ -75,6 +74,7 @@ public class DrawlerSettings {
 
 
     public static void phrase_mode() {
+        final String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.5").getString()};
 
         if (DrawlerClient.drawing_string.equals(modes[0])) {
             DrawlerClient.drawing_mode = 0;
@@ -201,13 +201,18 @@ public class DrawlerSettings {
                 .setSaveConsumer(newValue -> DrawlerClient.soundPack = newValue)
                 .build());
 
+        String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.5").getString()};
+
+
         //drawing modes
         drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.drawing_mode","check your localization file"),modes[DrawlerClient.drawing_mode])
-                .setDefaultValue(DrawlerSettings.modes[0])
+                .setDefaultValue(modes[0])
                 .setSelections(Arrays.stream(modes).toList())
                 .setTooltip(Text.translatableWithFallback("settings.tooltip.drawing_mode","check your localization file"))
                 .setSaveConsumer(newValue -> DrawlerClient.drawing_string = newValue)
                 .build());
+
+        String[] Cmodes = new String[]{I18n.translate("settings.drawing_mode.1"), I18n.translate("settings.drawing_mode.2")}; //change this to number of modes
 
         //correction modes
         drawing.addEntry(entryBuilder.startStringDropdownMenu(Text.translatableWithFallback("settings.option.correction_mode","check your localization file"),Cmodes[DrawlerClient.correction_mode])
