@@ -279,8 +279,8 @@ public class DrawlerClient implements ClientModInitializer {
                                                 return 1;
                                             }))))
                     .then(literal("drawpic")
-                            .then(ClientCommandManager.argument("mapID", IntegerArgumentType.integer(0))
-                                    .then(ClientCommandManager.argument("url", StringArgumentType.greedyString())
+                            .then(ClientCommandManager.argument("画布 ID", IntegerArgumentType.integer(0))
+                                    .then(ClientCommandManager.argument("图片路径", StringArgumentType.greedyString())
                                             .executes(context -> {
                                                 send_translatable("drawing.messages.processing_image");
                                                 mapid = IntegerArgumentType.getInteger(context, "画布 ID");
