@@ -21,7 +21,6 @@ public class DrawlerSettings {
 
     private static final File settings_file = new File("config/saved.yml");
     public static String[] Smodes = new String[]{"default", "discord", "loud"}; // IF THIS WILL USE TRANSALTABLES MOVE TO THE METHODS
-    public static String[] Sizes = new String[]{"32", "64", "128"};
 
     public static void saveSettings() {
         Map<String,Object> data = new HashMap<>();
@@ -228,6 +227,14 @@ public class DrawlerSettings {
         ConfigCategory deeeeev = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.deeeeev", "dev-cat"));
 
         if (DrawlerClient.isDev) {
+
+            //size
+            deeeeev.addEntry(entryBuilder.startIntField(Text.translatableWithFallback("settings.option.size", "check your localization file"), DrawlerClient.size)
+                    .setDefaultValue(32)
+                    .setTooltip(Text.translatableWithFallback("settings.tooltip.size", "check your localization file"))
+                    .setSaveConsumer(newValue -> DrawlerClient.size = newValue)
+                    .build());
+
 
             //render distance
             deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.depth", "check your localization file"), DrawlerClient.depth)

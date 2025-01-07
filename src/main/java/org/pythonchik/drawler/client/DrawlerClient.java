@@ -94,6 +94,7 @@ public class DrawlerClient implements ClientModInitializer {
     static String soundPack = "default";
     static ArrayList<ArrayList<Integer>> tocorrect = new ArrayList<>();
     static int size = 32;
+    static int colorMultiplier = 128/size;
     static int delay = 250;
     static int curIND = 0;
     static ScheduledFuture backup = null;
@@ -314,15 +315,15 @@ public class DrawlerClient implements ClientModInitializer {
                         for (int x = 0; x < size; x++) {
                             int Cid = DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)));
                             int Cvr = DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)));
-                            if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == Cid) &&
-                                    ((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4) == Cvr))) {
+                            if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == Cid) &&
+                                    ((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4) == Cvr))) {
                                 Color color = new Color(todrawimg.getRGB(x, y));
-                                if (!(MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == Cid)) {
+                                if (!(MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == Cid)) {
                                     timeMS += delay * (DrawlerConfig.getColorVariant(color) == 1 ? 2 : DrawlerConfig.getColorVariant(color) == 3 ? 5 : 4);
                                     continue;
                                 }
                                 // base color is correct:
-                                int CCvr = (Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4);
+                                int CCvr = (Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4);
                                 if (CCvr == 1) {
                                     timeMS += delay * ((Cvr == 2 || Cvr == 0) ? 3 : 4);
                                 } else if (CCvr == 0) {
@@ -474,8 +475,8 @@ public class DrawlerClient implements ClientModInitializer {
         if (mapState != null) {
             for (int y = 0; y < size; y++) {
                 for (int x = 0; x < size; x++) {
-                    if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
-                            ((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
+                    if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
                         Color color = new Color(todrawimg.getRGB(x, y));
                         tocorrect.add(new ArrayList<>(List.of(x, y, DrawlerConfig.getColorID(color), DrawlerConfig.getColorVariant(color))));
                         timeMS += delay * (DrawlerConfig.getColorVariant(color) == 1 ? 2 : DrawlerConfig.getColorVariant(color) == 3 ? 5 : 4);
@@ -801,8 +802,8 @@ public class DrawlerClient implements ClientModInitializer {
         if (mapState != null) {
             for (int y = 0; y < size; y++) {
                 for (int x = 0; x < size; x++) {
-                    if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
-                            ((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y))))))
+                    if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y))))))
                             && !MinecraftClient.getInstance().player.getInventory().containsAny(Set.of(DrawlerConfig.items.get(DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y))))))) {
                         return true;
                     }
@@ -833,8 +834,8 @@ public class DrawlerClient implements ClientModInitializer {
         if (mapState != null) {
             for (int y = 0; y < size; y++) {
                 for (int x = 0; x < size; x++) {
-                    if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
-                            ((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y))))))
+                    if ((!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y))))))
                             && !MinecraftClient.getInstance().player.getInventory().containsAny(Set.of(DrawlerConfig.items.get(DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y))))))) {
                         Color color = new Color(todrawimg.getRGB(x, y));
                         if (!seen.contains(DrawlerConfig.items.get(DrawlerConfig.getColorID(color)))) {
@@ -867,8 +868,8 @@ public class DrawlerClient implements ClientModInitializer {
         if (mapState != null) {
             for (int y = 0; y < size; y++) {
                 for (int x = 0; x < size; x++) {
-                    if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
-                            ((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
+                    if (!((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == DrawlerConfig.getColorID(new Color(todrawimg.getRGB(x, y)))) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4) == DrawlerConfig.getColorVariant(new Color(todrawimg.getRGB(x, y)))))) {
                         Color color = new Color(todrawimg.getRGB(x, y));
                         RenderingItems.add(DrawlerConfig.items.get(DrawlerConfig.getColorID(color)));
                     }
@@ -923,8 +924,8 @@ public class DrawlerClient implements ClientModInitializer {
                         send_translatable("drawing.messages.id_missing");
                         return;
                     }
-                    while (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == Cid) &&
-                            ((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4) == Cvr))) {
+                    while (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == Cid) &&
+                            ((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4) == Cvr))) {
                         curIND += 1;
                         if (!(pixeldata.size() > curIND && curIND >= 0)) {
                             send_translatable("drawing.errors.index_too_big");
@@ -987,8 +988,8 @@ public class DrawlerClient implements ClientModInitializer {
         debug(x + " " + y + " " + Cid + " " + Cvr);
 
         //checking if color's the same as should be, then gonext();
-        if (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == Cid) &&
-                ((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4) == Cvr))) {
+        if (((MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == Cid) &&
+                ((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4) == Cvr))) {
             backup.cancel(true);
             serv.shutdown();
             curIND = 0;
@@ -1008,7 +1009,7 @@ public class DrawlerClient implements ClientModInitializer {
                 player.setPitch(degree.get(1));
                 player.getInventory().updateItems();
                 player.getInventory().markDirty();
-                if (!(MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) / 4)).id == Cid)) {
+                if (!(MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) / 4)).id == Cid)) {
                     //taking item in hand, or returning, if we don't have it
                     Item ToFind = DrawlerConfig.items.get(Cid);
                     if (player.getInventory().containsAny(Set.of(ToFind))) {
@@ -1142,7 +1143,7 @@ public class DrawlerClient implements ClientModInitializer {
                     service.shutdown();
                 } else {
                     //base color is correct
-                    int CCvr = (Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 4 * 128 + x * 4])) / 4).id * 4); //variant, that is on the map
+                    int CCvr = (Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * colorMultiplier * 128 + x * colorMultiplier])) / 4).id * 4); //variant, that is on the map
 
                     if (CCvr == 1) {
 
