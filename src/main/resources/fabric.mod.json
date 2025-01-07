@@ -6,7 +6,9 @@
   "description": "在下草莓画手，能帮你自动画 ArtMap！",
   "authors": ["miniking1000","pythonchik","tgaisen"],
   "contact": {
-    "repo": "https://github.com/Tgaisen/drawlerForDripDrop"
+    "homepage": "",
+    "sources": "https://github.com/Tgaisen/drawlerForDripDrop",
+    "issues": "https://github.com/Tgaisen/drawlerForDripDrop/issues"
   },
   "license": "IDKWIAD",
   "icon": "assets/drawler/icon.png",
