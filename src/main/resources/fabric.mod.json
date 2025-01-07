@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "drawler",
+  "id": "artmapdrawer",
   "version": "${version}",
   "name": "ArtMap Drawer for DripDrop",
   "description": "在下草莓画手，能帮你自动画 ArtMap！",
