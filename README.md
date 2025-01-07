@@ -1,5 +1,5 @@
 # ArtMapDrawer for DripDrop
-这是Mod  [drawler](https://github.com/miniking1000/drawler) 的 Fork 版本，适配 DripDrop 服务器尺寸为 32×32 的 ArtMap，同时做了一些其他修改。
+这是 Mod  [drawler](https://github.com/miniking1000/drawler) 的 Fork 版本，适配 DripDrop 服务器尺寸为 32×32 的 ArtMap，同时做了一些其他修改。
 
 ## 修改
 * 图片来源改为本地
