@@ -10,6 +10,8 @@
   "settings.title.general":"General",
   "settings.title.drawing": "Drawing",
   "settings.title.deeeeev": "Dev category",
+  "settings.option.size": "Size",
+  "settings.tooltip.size": "Canvas size (pixels)",
   "settings.option.delay": "Delay",
   "settings.tooltip.delay": "Delay between each action in MS",
   "settings.option.scale": "Scale",

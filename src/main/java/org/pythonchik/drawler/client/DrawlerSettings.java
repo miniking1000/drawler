@@ -21,10 +21,12 @@ public class DrawlerSettings {
 
     private static final File settings_file = new File("config/saved.yml");
     public static String[] Smodes = new String[]{"default", "discord", "loud"}; // IF THIS WILL USE TRANSALTABLES MOVE TO THE METHODS
+    public static String[] Sizes = new String[]{"32", "64", "128"};
 
     public static void saveSettings() {
         Map<String,Object> data = new HashMap<>();
         data.put("scale",DrawlerClient.scale);
+        data.put("size",DrawlerClient.size);
         data.put("delay",DrawlerClient.delay);
         data.put("mode34",DrawlerClient.mode34);
         data.put("needtocorrect",DrawlerClient.needtocorrect);
@@ -57,12 +59,13 @@ public class DrawlerSettings {
             Map<String, Object> data = yaml.load(inputStream);
 
             DrawlerClient.scale = ((Number) data.getOrDefault("scale", 1)).floatValue();
+            DrawlerClient.size = (Integer) data.getOrDefault("size", 32);
             DrawlerClient.delay = (Integer) data.getOrDefault("delay", 200);
             DrawlerClient.mode34 = (Boolean) data.getOrDefault("mode34", true);
             DrawlerClient.needtocorrect = (Boolean) data.getOrDefault("needtocorrect", true);
             DrawlerClient.correction_mode = (Integer) data.getOrDefault("correction_mode",0);
             DrawlerClient.drawing_mode = (Integer) data.getOrDefault("drawing_mode",0);
-            DrawlerClient.isDev = (Boolean) data.getOrDefault("idDev",false);
+            DrawlerClient.isDev = (Boolean) data.getOrDefault("idDev",true);
             DrawlerClient.needtohighlight = (Boolean) data.getOrDefault("needtohighlight",true);
             DrawlerClient.highlightColor = (Integer) data.getOrDefault("highlightcolor",0x80FF0000);
             DrawlerClient.soundPack = (String) data.getOrDefault("soundpack", "default");
@@ -222,26 +225,27 @@ public class DrawlerSettings {
                 .setSaveConsumer(newValue -> DrawlerClient.correction_string = newValue)
                 .build());
 
+        ConfigCategory deeeeev = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.deeeeev", "dev-cat"));
+
         if (DrawlerClient.isDev) {
-            ConfigCategory deeeeev = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.deeeeev", "dev-cat"));
 
             //render distance
             deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.depth", "check your localization file"), DrawlerClient.depth)
-                    .setDefaultValue(0.64)
+                    .setDefaultValue(2.56)
                     .setTooltip(Text.translatableWithFallback("settings.tooltip.depth", "check your localization file"))
                     .setSaveConsumer(newValue -> DrawlerClient.depth = newValue)
                     .build());
 
             //render height
             deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.height", "check your localization file"), DrawlerClient.height)
-                    .setDefaultValue(1.122)
+                    .setDefaultValue(4.488)
                     .setTooltip(Text.translatableWithFallback("settings.tooltip.height", "check your localization file"))
                     .setSaveConsumer(newValue -> DrawlerClient.height = newValue)
                     .build());
 
             //render side offset
             deeeeev.addEntry(entryBuilder.startDoubleField(Text.translatableWithFallback("settings.option.sideoff", "check your localization file"), DrawlerClient.sideoff)
-                    .setDefaultValue(0.5)
+                    .setDefaultValue(2)
                     .setTooltip(Text.translatableWithFallback("settings.tooltip.sideoff", "check your localization file"))
                     .setSaveConsumer(newValue -> DrawlerClient.sideoff = newValue)
                     .build());

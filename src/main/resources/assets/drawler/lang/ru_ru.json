@@ -10,6 +10,8 @@
   "settings.title.general":"Общие",
   "settings.title.drawing": "Рисования",
   "settings.title.deeeeev": "Разработка",
+  "settings.option.size": "Size",
+  "settings.tooltip.size": "Canvas size (pixels)",
   "settings.option.delay": "Задержка",
   "settings.tooltip.delay": "Значение задержки между каждым действием в МС",
   "settings.option.scale": "Размер",

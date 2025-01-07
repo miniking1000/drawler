@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "id": "drawler",
   "version": "${version}",
-  "name": "drawler",
-  "description": "Mod, that will allow you to draw without actually drawing.\n english/russian support -> https://discord.gg/utnkcmWUSF \n я играть там -> discord.com/invite/8XsKXesDBM",
-  "authors": ["miniking1000","pythonchik"],
+  "name": "ArtMap Drawer for DripDrop",
+  "description": "在下草莓画手，能帮你自动画 ArtMap！",
+  "authors": ["miniking1000","pythonchik","tgaisen"],
   "contact": {
-    "repo": "https://github.com/miniking1000/drawler"
+    "repo": "https://github.com/Tgaisen/drawlerForDripDrop"
   },
   "license": "IDKWIAD",
   "icon": "assets/drawler/icon.png",
@@ -17,6 +17,9 @@
     ],
     "main": [
       "org.pythonchik.drawler.Drawler"
+    ],
+    "modmenu": [
+      "org.pythonchik.drawler.client.ModMenu"
     ]
   },
   "mixins": [
