@@ -95,7 +95,7 @@
   "drawing.errors.index_too_big": "像素超出范围或索引过大",
 
   "correction.messages.no_errors": "未检测到错误！绘画完成！",
-  "correction.messages.yes_errors__correcting": "检查完成，发现 %s 个错误。开始修复，大约需要 §c%sh %s分钟 %s秒",
+  "correction.messages.yes_errors__correcting": "检查完成，发现 %s 个错误。修复大约需要 §c%sh %s分钟 %s秒。按下启动/暂停键开始修复",
   "correction.messages.completed": "错误检查完成。",
 
   "sounds.subtitles.done": "绘画完成",
