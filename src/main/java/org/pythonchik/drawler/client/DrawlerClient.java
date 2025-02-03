@@ -20,14 +20,15 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.MapIdComponent;
+import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.FilledMapItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.map.MapState;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -64,6 +65,8 @@ public class DrawlerClient implements ClientModInitializer {
     static boolean after = false;
     static boolean isDebug = false;
     static boolean isDev = false;
+    static boolean needExport = false;
+    static boolean back_check = true;
     static HashMap<ArrayList<Integer>, ArrayList<Float>> current;
     //static int curx = 0;
     //static int curz = 0;
@@ -141,6 +144,7 @@ public class DrawlerClient implements ClientModInitializer {
                         todrawimg = null;
                         RenderingItems = null;
                         ItemMap = null;
+                        needExport = false;
                         tocorrect = new ArrayList<>();
                         ItemMap = new HashMap<>();
                         current = new HashMap<>();
@@ -295,11 +299,37 @@ public class DrawlerClient implements ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("drawpic")
-                    .then(ClientCommandManager.argument("mapID",IntegerArgumentType.integer(0))
+                    .then(ClientCommandManager.argument("mapID", IntegerArgumentType.integer(0))
+                            .suggests((context, builder) -> {
+                                MinecraftClient client = MinecraftClient.getInstance();
+                                if (client.player == null) return builder.buildFuture();
+                                for (ItemStack stack : new ItemStack[]{client.player.getMainHandStack(), client.player.getOffHandStack()}) {
+                                    if (stack.getItem() instanceof FilledMapItem) {
+                                        builder.suggest(stack.get(DataComponentTypes.MAP_ID).id());
+                                    }
+                                }
+
+                                // Suggest map ID from item frame
+                                if (client.crosshairTarget instanceof EntityHitResult entityHitResult) {
+                                    if (entityHitResult.getEntity() instanceof ItemFrameEntity itemFrame) {
+                                        ItemStack stack = itemFrame.getHeldItemStack();
+                                        if (stack.getItem() instanceof FilledMapItem) {
+                                            builder.suggest(stack.get(DataComponentTypes.MAP_ID).id());
+                                        }
+                                    }
+                                }
+                                return builder.buildFuture();
+                            })
                             .then(ClientCommandManager.argument("url", StringArgumentType.greedyString())
                                     .executes(context -> {
                                         send_translatable("drawing.messages.processing_image");
                                         mapid = IntegerArgumentType.getInteger(context, "mapID");
+                                        //prevent all the errors due to unloaded map by doing one check...
+                                        if (MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid)) == null) {
+                                            send_translatable("drawing.errors.map_id_incorrect");
+                                            return 1;
+                                        }
+
                                         url = StringArgumentType.getString(context, "url");
                                         ScheduledExecutorService backup = Executors.newScheduledThreadPool(1);
                                         backup.schedule(() -> {
@@ -584,6 +614,16 @@ public class DrawlerClient implements ClientModInitializer {
             ItemMap.put(Items.FEATHER,1);
 
             pixeldata = getPixeldata(resizedImage);
+            if (needExport) {
+                needExport = false;
+                String result = FormatPixelData(pixeldata);
+                if (!result.isEmpty()) {
+                    MinecraftClient.getInstance().keyboard.setClipboard(result);
+                    delay_translatable("drawing.messages.exported_successfully", 250);
+                } else {
+                    debug("Error in setting export");
+                }
+            }
 
             byte[] imageBytes = null;
             try {
@@ -985,7 +1025,6 @@ public class DrawlerClient implements ClientModInitializer {
             curIND -=togo; //если же мы можем вычесть, то просто вычитаем
             DrawlerClient.gonext();
         }, delay*20L, TimeUnit.MILLISECONDS);
-        serv.shutdown();
 
         //(pixel)data = x,y,Cid,Cvr
         int x = data.get(0);
@@ -1028,25 +1067,71 @@ public class DrawlerClient implements ClientModInitializer {
                             }
                         }
                     } else {
-                        send_translatable("drawing.messages.missing", I18n.translate(ToFind.getTranslationKey()));
-                        playSound(soundPack + "_error");
-                        isdrawin = false;
-                        curIND -= 1;
-                        backup.cancel(true);
-                        serv.shutdown();
-                        return;
+                        if (back_check) {
+                            new Timer().schedule(new TimerTask() {
+                                @Override
+                                public void run() {
+                                    if (player.getInventory().containsAny(Set.of(ToFind))) {
+                                        curIND = 0;
+                                        gonext();
+                                    } else {
+                                        send_translatable("drawing.messages.missing", I18n.translate(ToFind.getTranslationKey()));
+                                        playSound(soundPack + "_error");
+                                        isdrawin = false;
+                                        curIND -= 1;
+                                        backup.cancel(true);
+                                        serv.shutdown();
+                                    }
+                                    return;
+                                }
+                            }, 1000);
+                        } else {
+                            send_translatable("drawing.messages.missing", I18n.translate(ToFind.getTranslationKey()));
+                            playSound(soundPack + "_error");
+                            isdrawin = false;
+                            curIND -= 1;
+                            backup.cancel(true);
+                            serv.shutdown();
+                            return;
+                        }
+
                     }
 
                     // check if we are missing coal of feather
                     if (!((Cvr == 2 && player.getInventory().containsAny(Set.of(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 1)) {
-                        if (Cvr == 2)
-                            send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
-                        else
-                            send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
-                        isdrawin = false;
-                        curIND -= 1;
-                        backup.cancel(true);
-                        serv.shutdown();
+                        if (back_check) {
+                            new Timer().schedule(new TimerTask() {
+                                @Override
+                                public void run() {
+                                    if (!((Cvr == 2 && player.getInventory().containsAny(Set.of(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 1)) {
+                                        if (Cvr == 2)
+                                            send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
+                                        else
+                                            send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
+                                        playSound(soundPack + "_error");
+                                        isdrawin = false;
+                                        curIND -= 1;
+                                        backup.cancel(true);
+                                        serv.shutdown();
+                                    } else {
+                                        curIND = 0;
+                                        gonext();
+                                    }
+                                    return;
+                                }
+                            }, 1000);
+                        } else {
+                            if (Cvr == 2)
+                                send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
+                            else
+                                send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
+                            playSound(soundPack + "_error");
+                            isdrawin = false;
+                            curIND -= 1;
+                            backup.cancel(true);
+                            serv.shutdown();
+                        }
+
                         return;
                     }
 
@@ -1189,18 +1274,41 @@ public class DrawlerClient implements ClientModInitializer {
                 } else {
                     //base color is correct
                     int CCvr = (Byte.toUnsignedInt(mapState.colors[y * 128 + x]) - MapColor.get((Byte.toUnsignedInt(mapState.colors[y * 128 + x])) / 4).id * 4); //variant, that is on the map
-
                     if (CCvr == 1) {
-
                         if (!((Cvr == 2 && player.getInventory().containsAny(Set.of(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 1)) {
-                            if (Cvr == 2)
-                                send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
-                            else
-                                send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
-                            isdrawin = false;
-                            curIND -= 1;
-                            backup.cancel(true);
-                            serv.shutdown();
+                            if (back_check) {
+                                new Timer().schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        if (!((Cvr == 2 && player.getInventory().containsAny(Set.of(Items.FEATHER))) || ((Cvr == 0 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 1)) {
+                                            if (Cvr == 2)
+                                                send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
+                                            else
+                                                send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
+                                            playSound(soundPack + "_error");
+                                            isdrawin = false;
+                                            curIND -= 1;
+                                            backup.cancel(true);
+                                            serv.shutdown();
+                                        } else {
+                                            curIND = 0;
+                                            gonext();
+                                        }
+                                    }
+                                }, 1000);
+                            } else {
+                                if (Cvr == 2)
+                                    send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
+                                else
+                                    send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
+                                playSound(soundPack + "_error");
+                                isdrawin = false;
+                                curIND -= 1;
+                                backup.cancel(true);
+                                serv.shutdown();
+                                return;
+                            }
+
                             return;
                         }
 
@@ -1286,16 +1394,41 @@ public class DrawlerClient implements ClientModInitializer {
 
                     } else if (CCvr == 0) {
                         if (!(((Cvr == 2 || Cvr == 1) && player.getInventory().containsAny(Set.of(Items.FEATHER))) || (Cvr == 3 && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 0)) {
+                            if (back_check) {
+                                new Timer().schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        if (!(((Cvr == 2 || Cvr == 1) && player.getInventory().containsAny(Set.of(Items.FEATHER))) || (Cvr == 3 && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 0)) {
+                                            if (Cvr == 2 || Cvr == 1)
+                                                send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
+                                            else
+                                                send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
+                                            playSound(soundPack + "_error");
+                                            isdrawin = false;
+                                            curIND -= 1;
+                                            backup.cancel(true);
+                                            serv.shutdown();
+                                        } else {
+                                            curIND = 0;
+                                            gonext();
+                                        }
+                                    }
+                                }, 1000);
+                            } else {
                                 if (Cvr == 2 || Cvr == 1)
                                     send_translatable("drawing.messages.missing", I18n.translate(Items.FEATHER.getTranslationKey()));
                                 else
                                     send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
+                                playSound(soundPack + "_error");
                                 isdrawin = false;
                                 curIND -= 1;
                                 backup.cancel(true);
                                 serv.shutdown();
                                 return;
                             }
+
+                            return;
+                        }
 
                         //taking items coal/feather
                         if (Cvr == 2 || Cvr == 1) { // feather 1 or 2
@@ -1377,13 +1510,34 @@ public class DrawlerClient implements ClientModInitializer {
                     } else if (CCvr == 2) {
 
                         if (!(((Cvr == 0 || Cvr == 1 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 2)) {
+                            if (back_check) {
+                                new Timer().schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        if (!(((Cvr == 0 || Cvr == 1 || Cvr == 3) && player.getInventory().containsAny(Set.of(Items.COAL))) || Cvr == 2)) {
+                                            send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
+                                            isdrawin = false;
+                                            curIND -= 1;
+                                            backup.cancel(true);
+                                            serv.shutdown();
+                                        } else {
+                                            curIND = 0;
+                                            gonext();
+                                        }
+                                    }
+                                }, 1000);
+                            } else {
                                 send_translatable("drawing.messages.missing", I18n.translate(Items.COAL.getTranslationKey()));
+                                playSound(soundPack + "_error");
                                 isdrawin = false;
                                 curIND -= 1;
                                 backup.cancel(true);
                                 serv.shutdown();
                                 return;
                             }
+
+                            return;
+                        }
 
                         //taking item coal
                         ScheduledExecutorService service2 = Executors.newScheduledThreadPool(1);
@@ -1463,7 +1617,7 @@ public class DrawlerClient implements ClientModInitializer {
                                 gonext();
                             }, delay * (Cvr == 1 ? 3L : Cvr == 0 ? 4L : 5L), TimeUnit.MILLISECONDS);
                             service4.shutdown();
-                            }
+                        }
 
                     } else {
                         {
@@ -1579,6 +1733,46 @@ public class DrawlerClient implements ClientModInitializer {
         }
     }
 
+    public static String FormatPixelData(ArrayList<ArrayList<Integer>> pixeldata) {
+        if (pixeldata.size() != 128*128) {
+            return ""; // Incorrect format -> error
+        }
+
+        StringBuilder bitStream = new StringBuilder();
+        for (ArrayList<Integer> pixel : pixeldata) {
+            if (pixel.size() != 4) return ""; // error in one of the pixels, return all as error
+            String binaryString = getBinaryString(pixel);
+            bitStream.append(binaryString);
+        }
+        // bitStream expected length 360448 bits or 45056 bytes
+
+        return Base64.getEncoder().encodeToString(bitStringToByteArray(bitStream.toString())); // expected length ~60k
+    }
+
+    private static String getBinaryString(ArrayList<Integer> pixel) {
+        int x = pixel.get(0) & 0b1111111; // 7 bits (0-127)
+        int y = pixel.get(1) & 0b1111111; // 7 bits (0-127)
+        int colorId = pixel.get(2) & 0b111111; // 6 bits (0-63 (62 colors))
+        int variant = pixel.get(3) & 0b11; // 2 bits (0-3)
+        // xxxxxxx yyyyyyy ididid vv
+        // 7+6+2       6+2   2    0
+        int packedValue = (x << 15) | (y << 8) | (colorId << 2) | variant;
+        return String.format("%22s", Integer.toBinaryString(packedValue)).replace(' ', '0');
+    }
+
+    private static byte[] bitStringToByteArray(String bitString) {
+        int byteCount = (bitString.length() + 7) / 8;
+        byte[] byteArray = new byte[byteCount];
+
+        for (int i = 0; i < bitString.length(); i += 8) {
+            int end = Math.min(i + 8, bitString.length());
+            String byteChunk = bitString.substring(i, end);
+            byteArray[i / 8] = (byte) Integer.parseInt(byteChunk, 2);
+        }
+
+        return byteArray;
+    }
+
     //tech functions (they all probably won't break)
 
     /**
@@ -1672,6 +1866,20 @@ public class DrawlerClient implements ClientModInitializer {
      */
     public static void send_translatable(String message, Object... args){
         MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.literal(I18n.translate(message, args))));
+    }
+
+    /**
+     * sends message to player's chat
+     * @param message translatable key you want to send to player's chat(with prefix). supports formatting with char '&'
+     * @param args arguments for the translation
+     */
+    public static void delay_translatable(String message, int delay, Object... args) {
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("§7[§6Drawler§7]§r ").append(Text.literal(I18n.translate(message, args))));
+            }
+        }, delay);
     }
 
     /**
