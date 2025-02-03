@@ -4,6 +4,7 @@ package org.pythonchik.drawler.client;
 import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.DumperOptions;
 import me.shedaniel.cloth.clothconfig.shadowed.org.yaml.snakeyaml.Yaml;
 import me.shedaniel.clothconfig2.api.*;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -19,7 +20,7 @@ import java.util.*;
 public class DrawlerSettings {
 
     private static final File settings_file = new File("config/saved.yml");
-    public static String[] Smodes = new String[]{"default", "discord", "loud"}; // IF THIS WILL USE TRANSALTABLES MOVE TO THE METHODS
+    public static String[] Smodes = new String[]{"default", "discord", "loud"}; // IF THIS WILL USE TRANSLATABLE MOVE TO THE METHODS
 
     public static void saveSettings() {
         Map<String,Object> data = new HashMap<>();
@@ -34,6 +35,7 @@ public class DrawlerSettings {
         data.put("highlightcolor",DrawlerClient.highlightColor);
         data.put("soundpack",DrawlerClient.soundPack);
         data.put("needtosound",DrawlerClient.needtosound);
+        data.put("backcheck", DrawlerClient.back_check);
 
         //add line here to save value
 
@@ -66,6 +68,7 @@ public class DrawlerSettings {
             DrawlerClient.highlightColor = (Integer) data.getOrDefault("highlightcolor",0x80FF0000);
             DrawlerClient.soundPack = (String) data.getOrDefault("soundpack", "default");
             DrawlerClient.needtosound = (Boolean) data.getOrDefault("needtosound", true);
+            DrawlerClient.back_check = (Boolean) data.getOrDefault("backcheck", true);
             //add line here to load value
 
         } catch (Exception ignored) {}
@@ -221,6 +224,7 @@ public class DrawlerSettings {
                 .setSaveConsumer(newValue -> DrawlerClient.correction_string = newValue)
                 .build());
 
+
         if (DrawlerClient.isDev) {
             ConfigCategory deeeeev = builder.getOrCreateCategory(Text.translatableWithFallback("settings.title.deeeeev", "dev-cat"));
 
@@ -259,6 +263,19 @@ public class DrawlerSettings {
                     .setSaveConsumer(newValue -> DrawlerClient.isDebug = newValue)
                     .build());
 
+            //backcheck toggle
+            deeeeev.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.backcheck", "check your localization file"), DrawlerClient.back_check)
+                    .setDefaultValue(true)
+                    .setTooltip(Text.translatableWithFallback("settings.tooltip.backcheck", "check your localization file"))
+                    .setSaveConsumer(newValue -> DrawlerClient.back_check = newValue)
+                    .build());
+
+            //export pixeldata
+            deeeeev.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.export", "check your localization file"), false)
+                    .setDefaultValue(false)
+                    .setTooltip(Text.translatableWithFallback("settings.tooltip.export", "check your localization file"))
+                    .setSaveConsumer(newValue -> DrawlerClient.needExport = newValue)
+                    .build());
         }
 
         builder.setFallbackCategory(general);

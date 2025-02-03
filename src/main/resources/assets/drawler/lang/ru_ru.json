@@ -49,6 +49,17 @@
   "settings.tooltip.save_button": "Если да, то автоматически сохранит картину по завершении рисования",
   "settings.option.save_name": "Имя сохранения",
   "settings.tooltip.save_name": "Имя, с которым картина будет сохранена",
+  "settings.option.needtosound": "Звук",
+  "settings.tooltip.needtosound": "Переключает нужно ли воспроизводить звук при завершении работы или если в инвентаре нету нужного предмета для продолжения рисования",
+  "settings.option.soundpack": "Пресет звуков",
+  "settings.tooltip.soundpack": "Переключает разные пресеты звуков",
+  "settings.option.backcheck": "Доп проверка",
+  "settings.tooltip.backcheck": "Если да, то мод еще раз проверит точно ли в инвентаре нету предмета для рисования\nполезная функция при плохом соединении",
+  "settings.option.export": "Экспортировать данные изображения?",
+  "settings.tooltip.export": "Если включено, следующая команда /drawpic так-же скопирует в буфер обмена данные об изображении\nЭти данные могут быть использованы в другой моей программе для создания таймлапсов\nЕсли хотите узнать больше то проверьте мой профиль на github, miniking1000/drawler_timelapser",
+  "settings.sound_mode.1": "стандартнй",
+  "settings.sound_mode.2": "discord",
+  "settings.sound_mode.3": "громкий",
 
   "drawing.messages.missing": "%d - предмет не найден, возьми его в инвентарь для продолжения. Рисование на паузе",
   "drawing.messages.id_missing": "ID карты не правильный, карта не найдена..",
@@ -73,6 +84,7 @@
   "drawing.messages.item_for_this": "%s - предмет нужный для рисования этого пикселя",
   "drawing.messages.items_for_this": "%s + %s - предметы нужные для рисования данного пикселя",
   "drawing.messages.itemss_for_this": "%s + %s + %s - предметы нужные для рисования этого пикселя",
+  "drawing.messages.exported_successfully": "Данные изображения успешно скопированы в буфер обмена",
 
   "drawing.saving.no_slots": "§cУ вас нету свободного места в инвентаре что-бы сохранить картину",
   "drawing.saving.saved_as": "Картина была §aуспешно сохранена §rкак %s",
@@ -84,6 +96,7 @@
   "drawing.errors.correction_mode": "Ошибка: Неверный режим исправления",
   "drawing.errors.empty_items": "Список ресурсов пустой, вы ничего не рисуете...",
   "drawing.errors.index_too_big": "Пиксели закончились, или индекс слишком большой",
+  "drawing.errors.map_id_incorrect": "ID карты не верен, пожалуйста используйте подходящую, загруженную карту",
 
   "correction.messages.no_errors": "Ошибок не выявлено! картина готова!",
   "correction.messages.yes_errors__correcting": "Проверка ошибок завершена, выявлено %d ошибок. Переходим к исправлению, это займет примерно §c%dч %dмин %dс",
