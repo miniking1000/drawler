@@ -20,8 +20,6 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.FilledMapItem;
@@ -29,7 +27,9 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.map.MapState;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
@@ -64,7 +64,7 @@ public class DrawlerClient implements ClientModInitializer {
     static double sideoff = 0.5;
     static boolean after = false;
     static boolean isDebug = false;
-    static boolean isDev = false;
+    static boolean isDev = true;
     static boolean needExport = false;
     static boolean back_check = true;
     static HashMap<ArrayList<Integer>, ArrayList<Float>> current;
@@ -305,7 +305,7 @@ public class DrawlerClient implements ClientModInitializer {
                                 if (client.player == null) return builder.buildFuture();
                                 for (ItemStack stack : new ItemStack[]{client.player.getMainHandStack(), client.player.getOffHandStack()}) {
                                     if (stack.getItem() instanceof FilledMapItem) {
-                                        builder.suggest(stack.get(DataComponentTypes.MAP_ID).id());
+                                        builder.suggest(stack.getNbt().getInt("map"));
                                     }
                                 }
 
@@ -314,7 +314,7 @@ public class DrawlerClient implements ClientModInitializer {
                                     if (entityHitResult.getEntity() instanceof ItemFrameEntity itemFrame) {
                                         ItemStack stack = itemFrame.getHeldItemStack();
                                         if (stack.getItem() instanceof FilledMapItem) {
-                                            builder.suggest(stack.get(DataComponentTypes.MAP_ID).id());
+                                            builder.suggest(stack.getNbt().getInt("map"));
                                         }
                                     }
                                 }
@@ -325,7 +325,7 @@ public class DrawlerClient implements ClientModInitializer {
                                         send_translatable("drawing.messages.processing_image");
                                         mapid = IntegerArgumentType.getInteger(context, "mapID");
                                         //prevent all the errors due to unloaded map by doing one check...
-                                        if (MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid)) == null) {
+                                        if (MinecraftClient.getInstance().world.getMapState("map_" + mapid) == null) {
                                             send_translatable("drawing.errors.map_id_incorrect");
                                             return 1;
                                         }
@@ -352,7 +352,7 @@ public class DrawlerClient implements ClientModInitializer {
                 isdrawin = !isdrawin;
                 if (isdrawin) {
                     send_translatable("drawing.messages.continuing_from", curIND);
-                    MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+                    MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
                     int timeMS = 0;
                     for (int y = 0; y < 128; y++) {
                         for (int x = 0; x < 128; x++) {
@@ -480,13 +480,13 @@ public class DrawlerClient implements ClientModInitializer {
                 Tessellator tessellator = Tessellator.getInstance();
                 BufferBuilder buffer = tessellator.getBuffer();
 
-                buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE);
-                buffer.vertex(positionMatrix, 0, 1, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f).next();
-                buffer.vertex(positionMatrix, 0, 0, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f).next();
-                buffer.vertex(positionMatrix, 1, 0, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f).next();
-                buffer.vertex(positionMatrix, 1, 1, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f).next();
+                buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
+                buffer.vertex(positionMatrix, 0, 1, 0).texture(0f, 0f).next();
+                buffer.vertex(positionMatrix, 0, 0, 0).texture(0f, 1f).next();
+                buffer.vertex(positionMatrix, 1, 0, 0).texture(1f, 1f).next();
+                buffer.vertex(positionMatrix, 1, 1, 0).texture(1f, 0f).next();
 
-                RenderSystem.setShader(GameRenderer::getPositionColorTexProgram);
+                RenderSystem.setShader(GameRenderer::getPositionTexProgram);
                 if (!isthere){
                     try {
                         MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(Identifier.of("drawler", "default.png")).get().getInputStream())));
@@ -495,15 +495,17 @@ public class DrawlerClient implements ClientModInitializer {
                     }
                 }
                 RenderSystem.setShaderTexture(0, Identifier.of("drawler", "urlimg.png"));
-                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
                 if (after) {
                     RenderSystem.disableCull();
-                    RenderSystem.depthFunc(GL11.GL_ALPHA);
+                    RenderSystem.disableDepthTest();
+                } else {
+                    RenderSystem.enableDepthTest();
+                    RenderSystem.depthFunc(GL11.GL_DEPTH);
+                    RenderSystem.enableCull();
                 }
                 BufferRenderer.drawWithGlobalProgram(buffer.end());
 
-                RenderSystem.depthFunc(GL11.GL_ALPHA);
-                RenderSystem.enableCull();
 
             }
 
@@ -514,7 +516,7 @@ public class DrawlerClient implements ClientModInitializer {
     public static void check_errors() {
         send_translatable("drawing.messages.start_checking");
         tocorrect = new ArrayList<>();
-        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
         int timeMS = 0;
         if (mapState != null) {
             for (int y = 0; y < 128; y++) {
@@ -847,7 +849,7 @@ public class DrawlerClient implements ClientModInitializer {
             send_translatable("drawing.errors.empty_items");
             return false;
         }
-        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
         if (mapState != null) {
             for (int y = 0; y < 128; y++) {
                 for (int x = 0; x < 128; x++) {
@@ -879,7 +881,7 @@ public class DrawlerClient implements ClientModInitializer {
             return;
         }
         ArrayList<Item> seen = new ArrayList<>();
-        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
         if (mapState != null) {
             for (int y = 0; y < 128; y++) {
                 for (int x = 0; x < 128; x++) {
@@ -913,7 +915,7 @@ public class DrawlerClient implements ClientModInitializer {
 
     private static void updateRender() {
         RenderingItems = new ArrayList<>(List.of(Items.COAL,Items.FEATHER));
-        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
         if (mapState != null) {
             for (int y = 0; y < 128; y++) {
                 for (int x = 0; x < 128; x++) {
@@ -968,7 +970,7 @@ public class DrawlerClient implements ClientModInitializer {
                         isdrawin = false;
                         return;
                     }
-                    MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+                    MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
                     if (mapState == null){
                         send_translatable("drawing.messages.id_missing");
                         return;
@@ -1010,7 +1012,7 @@ public class DrawlerClient implements ClientModInitializer {
         if (MinecraftClient.getInstance().player == null) return;
         if (MinecraftClient.getInstance().interactionManager == null) return;
         if (MinecraftClient.getInstance().crosshairTarget == null) return;
-        MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+        MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
         if (mapState == null){
             send_translatable("drawing.messages.id_missing");
             return;
@@ -1726,7 +1728,7 @@ public class DrawlerClient implements ClientModInitializer {
             if (client.player != null) {
                 SoundEvent soundEvent = CustomSounds.get_by_name(soundName);
                 if (soundEvent != null) {
-                    client.player.playSound(soundEvent);
+                    client.player.playSound(soundEvent, client.options.getSoundVolume(SoundCategory.MASTER), 1);
                 } else {
                     debug("sound " + soundName + " was not found");
                 }
