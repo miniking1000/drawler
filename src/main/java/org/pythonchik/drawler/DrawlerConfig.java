@@ -118,7 +118,7 @@ public class DrawlerConfig {
 
 
         items.put(0,Items.ENDER_EYE);
-        items.put(1,Items.SHORT_GRASS);
+        items.put(1,Items.GRASS);
         items.put(2,Items.PUMPKIN_SEEDS);
         items.put(3,Items.COBWEB);
         items.put(4,Items.RED_DYE);
