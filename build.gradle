@@ -19,7 +19,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     implementation 'org.json:json:20231013'
     implementation 'org.yaml:snakeyaml:2.0'
-    modApi "me.shedaniel.cloth:cloth-config-fabric:15.0.140"
+    modApi "me.shedaniel.cloth:cloth-config-fabric:16.0.143"
     }
 
 processResources {

@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.block.MapColor;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.*;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.*;
@@ -106,7 +107,6 @@ public class DrawlerClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-
         CustomSounds.initialize();
 
         {
@@ -394,7 +394,7 @@ public class DrawlerClient implements ClientModInitializer {
 
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (needtorender) {
-               drawContext.drawTexture(MAP_CHKRBRD, (int) (3+scale), (int) (3+scale),0, 1F, 1F, (int) (92*scale),(int) (92*scale),(int) (92*scale)+1,(int) (92*scale)+1);
+                drawContext.drawTexture(RenderLayer::getGuiTextured, MAP_CHKRBRD, (int) (3+scale), (int) (3+scale),1F, 1F, (int) (92*scale),(int) (92*scale),(int) (92*scale)+1,(int) (92*scale)+1);
 
                 if (!isthere) {
                     try {
@@ -404,21 +404,28 @@ public class DrawlerClient implements ClientModInitializer {
                             NativeImage image = NativeImage.read(stream);
 
                             MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), new NativeImageBackedTexture(image));
+
                             isthere = true;
                         }
                     } catch (Exception e) {
+                        e.printStackTrace();
                         try {
                             MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(Identifier.of("drawler", "default.png")).get().getInputStream())));
+
                         } catch (Exception ignored) {
+                            ignored.printStackTrace();
                         }
                     }
                 }
-                drawContext.drawTexture(Identifier.of("drawler","urlimg.png"), (int) (3+3*scale), (int) (3+3*scale),0, 1F, 1F, (int) (86*scale),(int) (86*scale),(int) (86*scale)+1,(int) (86*scale)+1);
+                drawContext.drawTexture(RenderLayer::getGuiTexturedOverlay, Identifier.of("drawler","urlimg.png"), (int) (3+3*scale), (int) (3+3*scale),1F, 1F, (int) (86*scale),(int) (86*scale),(int) (86*scale)+1,(int) (86*scale)+1);
             }
         }); //end of hudRenderer
 
         WorldRenderEvents.END.register(context -> {
+
+
             if (worldrender) {
+                if (MinecraftClient.getInstance().getShaderLoader() == null) return;
                 Camera camera = context.camera();
                 MatrixStack matrixStack = new MatrixStack();
                 switch (MinecraftClient.getInstance().player.getHorizontalFacing()) {
@@ -478,34 +485,36 @@ public class DrawlerClient implements ClientModInitializer {
 
                 Matrix4f positionMatrix = matrixStack.peek().getPositionMatrix();
                 Tessellator tessellator = Tessellator.getInstance();
-                BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
+                BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
 
-                buffer.vertex(positionMatrix, 0, 1, 0).color(1f, 1f, 1f, 1f).texture(0f, 0f);
-                buffer.vertex(positionMatrix, 0, 0, 0).color(1f, 1f, 1f, 1f).texture(0f, 1f);
-                buffer.vertex(positionMatrix, 1, 0, 0).color(1f, 1f, 1f, 1f).texture(1f, 1f);
-                buffer.vertex(positionMatrix, 1, 1, 0).color(1f, 1f, 1f, 1f).texture(1f, 0f);
+                buffer.vertex(positionMatrix, 0, 1, 0).texture(0f, 0f);
+                buffer.vertex(positionMatrix, 0, 0, 0).texture(0f, 1f);
+                buffer.vertex(positionMatrix, 1, 0, 0).texture(1f, 1f);
+                buffer.vertex(positionMatrix, 1, 1, 0).texture(1f, 0f);
 
-                RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+                RenderSystem.setShader(ShaderProgramKeys.POSITION_TEX);
                 if (!isthere){
                     try {
                         MinecraftClient.getInstance().getTextureManager().registerTexture(Identifier.of("drawler", "urlimg.png"), new NativeImageBackedTexture(NativeImage.read(MinecraftClient.getInstance().getResourceManager().getResource(Identifier.of("drawler", "default.png")).get().getInputStream())));
+
                         isthere = true;
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
                 RenderSystem.setShaderTexture(0, Identifier.of("drawler", "urlimg.png"));
-                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+                MinecraftClient.getInstance().getTextureManager().getTexture(Identifier.of("drawler", "urlimg.png")).setFilter(false, false);
                 if (after) {
                     RenderSystem.disableCull();
-                    RenderSystem.depthFunc(GL11.GL_ALPHA);
+                } else {
+                    RenderSystem.enableDepthTest();
+                    RenderSystem.depthFunc(GL11.GL_LEQUAL);
+                    RenderSystem.depthMask(true);
+                    RenderSystem.enableDepthTest();
                 }
+
                 BufferRenderer.drawWithGlobalProgram(buffer.end());
 
-                RenderSystem.depthFunc(GL11.GL_ALPHA);
                 RenderSystem.enableCull();
-
             }
-
         }); //end of world render
     } //end of client init
 
@@ -1847,8 +1856,11 @@ public class DrawlerClient implements ClientModInitializer {
      * @param slot slot ID
      */
     private static void swapItem(int slot) {
-        MinecraftClient.getInstance().interactionManager.pickFromInventory(slot);
-        MinecraftClient.getInstance().player.getInventory().markDirty();
+        ItemStack stack = MinecraftClient.getInstance().player.getInventory().getStack(slot);
+        MinecraftClient.getInstance().player.getInventory().setStack(slot, MinecraftClient.getInstance().player.getInventory().getMainHandStack());
+        MinecraftClient.getInstance().player.getInventory().setStack(MinecraftClient.getInstance().player.getInventory().selectedSlot, stack);
+        //MinecraftClient.getInstance().interactionManager.pickFromInventory(slot);
+        //MinecraftClient.getInstance().player.getInventory().markDirty();
     }
 
     /**
