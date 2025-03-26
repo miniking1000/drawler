@@ -177,6 +177,16 @@ public class DrawlerClient implements ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("set_drawing")
+                    .then(ClientCommandManager.argument("point", IntegerArgumentType.integer(0,128*128))
+                            .executes(context -> {
+                                send_translatable("drawing.messages.cords_changed",curIND,IntegerArgumentType.getInteger(context,"point"));
+                                curIND = IntegerArgumentType.getInteger(context,"point");
+                                return 1;
+                            })));
+        }); //set_drawing <point> command
+
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            dispatcher.register(ClientCommandManager.literal("set_drawing")
                     .then(ClientCommandManager.argument("x", IntegerArgumentType.integer(0,128))
                             .then(ClientCommandManager.argument("y", IntegerArgumentType.integer(0,128))
                                 .executes(context -> {
@@ -185,16 +195,6 @@ public class DrawlerClient implements ClientModInitializer {
                                     return 1;
                                 }))));
         }); //set_drawing <x> <y> command
-
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(ClientCommandManager.literal("set_drawing")
-                    .then(ClientCommandManager.argument("point", IntegerArgumentType.integer(0,128*128))
-                            .executes(context -> {
-                                send_translatable("drawing.messages.cords_changed",curIND,IntegerArgumentType.getInteger(context,"point"));
-                                curIND = IntegerArgumentType.getInteger(context,"point");
-                                return 1;
-                            })));
-        }); //set_drawing <point> command
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("set_camera")
@@ -353,6 +353,11 @@ public class DrawlerClient implements ClientModInitializer {
                 if (isdrawin) {
                     send_translatable("drawing.messages.continuing_from", curIND);
                     MapState mapState = MinecraftClient.getInstance().world.getMapState("map_" + mapid);
+                    if (mapState == null) {
+                        isdrawin = false;
+                        send_translatable("drawing.messages.id_missing");
+                        return;
+                    }
                     int timeMS = 0;
                     for (int y = 0; y < 128; y++) {
                         for (int x = 0; x < 128; x++) {
