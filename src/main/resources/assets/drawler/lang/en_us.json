@@ -57,6 +57,8 @@
   "settings.tooltip.backcheck": "If true mod will try to find a missing item before throwing and error\nuseful with bad connection",
   "settings.option.export": "Save image data?",
   "settings.tooltip.export": "If true, next /drawpic command will copy data of the image, this may be used in (my) other program to create timelapse of the drawing\nTo learn more You may check my github profile, miniking1000/drawler_timelapser",
+  "settings.option.slot": "Item slot",
+  "settings.tooltip.slot": "What slot to use for the drawing, this does not really make that much differance.",
   "settings.sound_mode.1": "default",
   "settings.sound_mode.2": "discord",
   "settings.sound_mode.3": "loud",

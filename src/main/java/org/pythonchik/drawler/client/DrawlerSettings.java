@@ -147,13 +147,6 @@ public class DrawlerSettings {
                 .setSaveConsumer(newValue -> DrawlerClient.scale = newValue)
                 .build());
 
-        //DElAY
-        drawing.addEntry(entryBuilder.startIntField(Text.translatableWithFallback("settings.option.delay","check your localization file"), DrawlerClient.delay)
-                .setDefaultValue(200)
-                .setTooltip(Text.translatableWithFallback("settings.tooltip.delay","check your localization file"))
-                .setSaveConsumer(newValue -> DrawlerClient.delay = newValue)
-                .build());
-
         //rule 34
         general.addEntry(entryBuilder.startBooleanToggle(Text.translatableWithFallback("settings.option.rule34","check your localization file"), DrawlerClient.mode34)
                 .setDefaultValue(true)
@@ -205,6 +198,20 @@ public class DrawlerSettings {
                 .build());
 
         String[] modes = new String[]{Text.translatable("settings.drawing_mode.1").getString(),Text.translatable("settings.drawing_mode.2").getString(),Text.translatable("settings.drawing_mode.3").getString(),Text.translatable("settings.drawing_mode.4").getString(),Text.translatable("settings.drawing_mode.5").getString()};
+
+        //DElAY
+        drawing.addEntry(entryBuilder.startIntField(Text.translatableWithFallback("settings.option.delay","check your localization file"), DrawlerClient.delay)
+                .setDefaultValue(200)
+                .setTooltip(Text.translatableWithFallback("settings.tooltip.delay","check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.delay = newValue)
+                .build());
+
+        //slot
+        drawing.addEntry(entryBuilder.startIntSlider(Text.translatableWithFallback("settings.option.slot", "check your localization file"), DrawlerClient.slot, 1, 9)
+                .setDefaultValue(9)
+                .setTooltip(Text.translatable("settings.tooltip.slot", "check your localization file"))
+                .setSaveConsumer(newValue -> DrawlerClient.slot = newValue)
+                .build());
 
 
         //drawing modes

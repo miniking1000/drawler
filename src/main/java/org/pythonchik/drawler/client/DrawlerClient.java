@@ -30,6 +30,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.map.MapState;
+import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -97,6 +98,7 @@ public class DrawlerClient implements ClientModInitializer {
     static ArrayList<ArrayList<Integer>> tocorrect = new ArrayList<>();
     static int delay = 250;
     static int curIND = 0;
+    static int slot = 9;
     static ScheduledFuture backup = null;
     static HashMap<Item,Integer> ItemMap;
     static ArrayList<Item> RenderingItems;
@@ -177,6 +179,16 @@ public class DrawlerClient implements ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("set_drawing")
+                    .then(ClientCommandManager.argument("point", IntegerArgumentType.integer(0,128*128))
+                            .executes(context -> {
+                                send_translatable("drawing.messages.cords_changed",curIND,IntegerArgumentType.getInteger(context,"point"));
+                                curIND = IntegerArgumentType.getInteger(context,"point");
+                                return 1;
+                            })));
+        }); //set_drawing <point> command
+
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            dispatcher.register(ClientCommandManager.literal("set_drawing")
                     .then(ClientCommandManager.argument("x", IntegerArgumentType.integer(0,128))
                             .then(ClientCommandManager.argument("y", IntegerArgumentType.integer(0,128))
                                 .executes(context -> {
@@ -185,16 +197,6 @@ public class DrawlerClient implements ClientModInitializer {
                                     return 1;
                                 }))));
         }); //set_drawing <x> <y> command
-
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(ClientCommandManager.literal("set_drawing")
-                    .then(ClientCommandManager.argument("point", IntegerArgumentType.integer(0,128*128))
-                            .executes(context -> {
-                                send_translatable("drawing.messages.cords_changed",curIND,IntegerArgumentType.getInteger(context,"point"));
-                                curIND = IntegerArgumentType.getInteger(context,"point");
-                                return 1;
-                            })));
-        }); //set_drawing <point> command
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("set_camera")
@@ -353,6 +355,11 @@ public class DrawlerClient implements ClientModInitializer {
                 if (isdrawin) {
                     send_translatable("drawing.messages.continuing_from", curIND);
                     MapState mapState = MinecraftClient.getInstance().world.getMapState(new MapIdComponent(mapid));
+                    if (mapState == null) {
+                        isdrawin = false;
+                        send_translatable("drawing.messages.id_missing");
+                        return;
+                    }
                     int timeMS = 0;
                     for (int y = 0; y < 128; y++) {
                         for (int x = 0; x < 128; x++) {
@@ -1853,13 +1860,12 @@ public class DrawlerClient implements ClientModInitializer {
 
     /**
      * swaps item in slot 'slot' with main hand
-     * @param slot slot ID
+     * @param toSwap slot ID
      */
-    private static void swapItem(int slot) {
-        ItemStack stack = MinecraftClient.getInstance().player.getInventory().getStack(slot);
-        MinecraftClient.getInstance().player.getInventory().setStack(slot, MinecraftClient.getInstance().player.getInventory().getMainHandStack());
-        MinecraftClient.getInstance().player.getInventory().setStack(MinecraftClient.getInstance().player.getInventory().selectedSlot, stack);
-        //MinecraftClient.getInstance().interactionManager.pickFromInventory(slot);
+    private static void swapItem(int toSwap) {
+        MinecraftClient.getInstance().player.getInventory().selectedSlot = slot-1;
+        if (toSwap <= 9 && toSwap != slot-1) { MinecraftClient.getInstance().player.getInventory().selectedSlot = toSwap; return;}
+        if (toSwap != slot-1) MinecraftClient.getInstance().interactionManager.clickSlot(0, toSwap, slot-1, SlotActionType.SWAP, MinecraftClient.getInstance().player);
         //MinecraftClient.getInstance().player.getInventory().markDirty();
     }
 
