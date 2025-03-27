@@ -37,6 +37,7 @@ public class DrawlerSettings {
         data.put("soundpack",DrawlerClient.soundPack);
         data.put("needtosound",DrawlerClient.needtosound);
         data.put("backcheck", DrawlerClient.back_check);
+        data.put("slot", DrawlerClient.slot);
 
         //add line here to save value
 
@@ -70,6 +71,7 @@ public class DrawlerSettings {
             DrawlerClient.soundPack = (String) data.getOrDefault("soundpack", "default");
             DrawlerClient.needtosound = (Boolean) data.getOrDefault("needtosound", true);
             DrawlerClient.back_check = (Boolean) data.getOrDefault("backcheck", true);
+            DrawlerClient.slot = (Integer) data.getOrDefault("slot", 9);
             //add line here to load value
 
         } catch (Exception ignored) {}

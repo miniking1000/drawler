@@ -1864,7 +1864,7 @@ public class DrawlerClient implements ClientModInitializer {
      */
     private static void swapItem(int toSwap) {
         MinecraftClient.getInstance().player.getInventory().selectedSlot = slot-1;
-        if (toSwap <= 9 && toSwap != slot-1) { MinecraftClient.getInstance().player.getInventory().selectedSlot = toSwap; return;}
+        if (toSwap < 9 && toSwap != slot-1) { MinecraftClient.getInstance().player.getInventory().selectedSlot = toSwap; return;}
         if (toSwap != slot-1) MinecraftClient.getInstance().interactionManager.clickSlot(0, toSwap, slot-1, SlotActionType.SWAP, MinecraftClient.getInstance().player);
         //MinecraftClient.getInstance().player.getInventory().markDirty();
     }
